@@ -94,28 +94,28 @@ enum PaymentMethod {
 // -----------------------------------------------------------------------------
 
 model User {
-  id            String    @id @default(uuid())
-  fullname      String
-  email         String    @unique
-  phone         String?
-  password_hash String
-  createdat     DateTime  @default(now())
-  modifiedat    DateTime  @updatedAt
-  lastlogin     DateTime?
+  id         String    @id @default(uuid())
+  fullname   String
+  email      String    @unique
+  phone      String?
+  address    String?
+  createdat  DateTime  @default(now())
+  modifiedat DateTime  @updatedAt
+  lastlogin  DateTime?
 
   // Relations
-  owned_orgs                Org[]
-  roles                     UserRole[]                  @relation("UserRoles")
-  assigned_roles            UserRole[]                  @relation("RoleAssigner")
-  locations                 UserLocation[]              @relation("UserLocations")
-  assigned_locations        UserLocation[]              @relation("LocationAssigner")
-  stock_batches             StockBatch[]
-  inventory_transactions    InventoryTransaction[]
-  purchase_orders           PurchaseOrder[]
-  supplier_transactions     SupplierCreditTransaction[]
-  customer_transactions     CustomerCreditTransaction[]
-  bills                     Bill[]                      @relation("CashierBills")
-  bill_payments             BillPayment[]
+  owned_orgs             Org[]
+  roles                  UserRole[]                  @relation("UserRoles")
+  assigned_roles         UserRole[]                  @relation("RoleAssigner")
+  locations              UserLocation[]              @relation("UserLocations")
+  assigned_locations     UserLocation[]              @relation("LocationAssigner")
+  stock_batches          StockBatch[]
+  inventory_transactions InventoryTransaction[]
+  purchase_orders        PurchaseOrder[]
+  supplier_transactions  SupplierCreditTransaction[]
+  customer_transactions  CustomerCreditTransaction[]
+  bills                  Bill[]                      @relation("CashierBills")
+  bill_payments          BillPayment[]
 }
 
 model Role {
@@ -178,27 +178,27 @@ model UserLocation {
 // -----------------------------------------------------------------------------
 
 model Org {
-  id                   String   @id @default(uuid())
-  owner_id             String
-  businesscategory_id  String
-  address              String?
-  phone                String?
+  id                  String  @id @default(uuid())
+  owner_id            String
+  businesscategory_id String
+  address             String?
+  phone               String?
 
-  owner                User             @relation(fields: [owner_id], references: [id])
-  business_category    BusinessCategory @relation(fields: [businesscategory_id], references: [id])
-  
-  user_roles           UserRole[]
-  locations            InventoryLocation[]
-  suppliers            Supplier[]
-  purchase_orders      PurchaseOrder[]
-  supplier_accounts    SupplierCreditAccount[]
-  supplier_txs         SupplierCreditTransaction[]
-  customers            Customer[]
-  customer_accounts    CustomerCreditAccount[]
-  customer_txs         CustomerCreditTransaction[]
-  loyalty_txs          CustomerLoyaltyTransaction[]
-  loyalty_config       LoyaltyProgramConfig?
-  bills                Bill[]
+  owner             User             @relation(fields: [owner_id], references: [id])
+  business_category BusinessCategory @relation(fields: [businesscategory_id], references: [id])
+
+  user_roles        UserRole[]
+  locations         InventoryLocation[]
+  suppliers         Supplier[]
+  purchase_orders   PurchaseOrder[]
+  supplier_accounts SupplierCreditAccount[]
+  supplier_txs      SupplierCreditTransaction[]
+  customers         Customer[]
+  customer_accounts CustomerCreditAccount[]
+  customer_txs      CustomerCreditTransaction[]
+  loyalty_txs       CustomerLoyaltyTransaction[]
+  loyalty_config    LoyaltyProgramConfig?
+  bills             Bill[]
 }
 
 model BusinessCategory {
@@ -212,13 +212,13 @@ model BusinessCategory {
 // -----------------------------------------------------------------------------
 
 model ProductCategory {
-  id        String            @id @default(uuid())
+  id        String  @id @default(uuid())
   parent_id String?
   name      String
-  level     Int               @default(0)
+  level     Int     @default(0)
 
-  parent    ProductCategory?  @relation("SubCategories", fields: [parent_id], references: [id])
-  children  ProductCategory[] @relation("SubCategories")
+  parent    ProductCategory?   @relation("SubCategories", fields: [parent_id], references: [id])
+  children  ProductCategory[]  @relation("SubCategories")
   products  Product[]
   discounts CategoryDiscount[]
 }
@@ -230,38 +230,38 @@ model Brand {
 }
 
 model Product {
-  id             String   @id @default(uuid())
-  subcategoryid  String
-  brandid        String?
-  supplier_id    String?
-  barcode        String?  @unique
-  SKU            String   @unique
-  name           String
-  createdat      DateTime @default(now())
-  modifiedat     DateTime @updatedAt
+  id            String   @id @default(uuid())
+  subcategoryid String
+  brandid       String?
+  supplier_id   String?
+  barcode       String?  @unique
+  SKU           String   @unique
+  name          String
+  createdat     DateTime @default(now())
+  modifiedat    DateTime @updatedAt
 
-  category       ProductCategory @relation(fields: [subcategoryid], references: [id])
-  brand          Brand?          @relation(fields: [brandid], references: [id])
-  supplier       Supplier?       @relation(fields: [supplier_id], references: [id])
-  
-  prices         ProductPrice[]
-  discounts      ProductDiscount[]
-  stock_batches  StockBatch[]
-  po_items       PurchaseOrderItem[]
-  bill_items     BillItem[]
+  category ProductCategory @relation(fields: [subcategoryid], references: [id])
+  brand    Brand?          @relation(fields: [brandid], references: [id])
+  supplier Supplier?       @relation(fields: [supplier_id], references: [id])
+
+  prices        ProductPrice[]
+  discounts     ProductDiscount[]
+  stock_batches StockBatch[]
+  po_items      PurchaseOrderItem[]
+  bill_items    BillItem[]
 }
 
 model ProductPrice {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   productid     String
-  price         Decimal  @db.Decimal(10, 2)
-  currency      String   @default("USD")
-  effectivefrom DateTime @default(now())
+  price         Decimal   @db.Decimal(10, 2)
+  currency      String    @default("USD")
+  effectivefrom DateTime  @default(now())
   effectiveto   DateTime?
-  isdefault     Boolean  @default(false)
+  isdefault     Boolean   @default(false)
 
-  product       Product  @relation(fields: [productid], references: [id])
-  bill_items    BillItem[]
+  product    Product    @relation(fields: [productid], references: [id])
+  bill_items BillItem[]
 }
 
 // -----------------------------------------------------------------------------
@@ -269,18 +269,18 @@ model ProductPrice {
 // -----------------------------------------------------------------------------
 
 model Discount {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   name         String
-  type         String   // E.g., PERCENTAGE, FIXED
-  value        Decimal  @db.Decimal(10, 2)
-  valid_from   DateTime @default(now())
+  type         String // E.g., PERCENTAGE, FIXED
+  value        Decimal   @db.Decimal(10, 2)
+  valid_from   DateTime  @default(now())
   valid_to     DateTime?
   min_qty      Int?
-  min_val      Decimal? @db.Decimal(10, 2)
-  coup_code    String?  @unique
-  is_active    Boolean  @default(true)
-  is_stackable Boolean  @default(false)
-  scope        String   // E.g., PRODUCT, CATEGORY, ORDER
+  min_val      Decimal?  @db.Decimal(10, 2)
+  coup_code    String?   @unique
+  is_active    Boolean   @default(true)
+  is_stackable Boolean   @default(false)
+  scope        String // E.g., PRODUCT, CATEGORY, ORDER
 
   product_discounts  ProductDiscount[]
   category_discounts CategoryDiscount[]
@@ -289,10 +289,10 @@ model Discount {
 model ProductDiscount {
   product_id  String
   discount_id String
-  priority    Int      @default(0)
+  priority    Int    @default(0)
 
-  product     Product  @relation(fields: [product_id], references: [id])
-  discount    Discount @relation(fields: [discount_id], references: [id])
+  product  Product  @relation(fields: [product_id], references: [id])
+  discount Discount @relation(fields: [discount_id], references: [id])
 
   @@id([product_id, discount_id])
 }
@@ -300,10 +300,10 @@ model ProductDiscount {
 model CategoryDiscount {
   category_id String
   discount_id String
-  inherit     Boolean  @default(true)
+  inherit     Boolean @default(true)
 
-  category    ProductCategory @relation(fields: [category_id], references: [id])
-  discount    Discount        @relation(fields: [discount_id], references: [id])
+  category ProductCategory @relation(fields: [category_id], references: [id])
+  discount Discount        @relation(fields: [discount_id], references: [id])
 
   @@id([category_id, discount_id])
 }
@@ -343,7 +343,7 @@ model Supplier {
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
-  org             Org      @relation(fields: [org_id], references: [id])
+  org             Org                         @relation(fields: [org_id], references: [id])
   products        Product[]
   batches         StockBatch[]
   purchase_orders PurchaseOrder[]
@@ -352,26 +352,26 @@ model Supplier {
 }
 
 model PurchaseOrder {
-  id                    String        @id @default(uuid())
+  id                    String       @id @default(uuid())
   org_id                String
   supplier_id           String
   receiving_location_id String
-  po_number             String        @unique
-  status                POStatus      @default(DRAFT)
+  po_number             String       @unique
+  status                POStatus     @default(DRAFT)
   payment_terms         PaymentTerms
   due_date              DateTime?
-  total_amount          Decimal       @db.Decimal(12, 2)
+  total_amount          Decimal      @db.Decimal(12, 2)
   notes                 String?
   created_by            String
-  created_at            DateTime      @default(now())
-  updated_at            DateTime      @updatedAt
+  created_at            DateTime     @default(now())
+  updated_at            DateTime     @updatedAt
 
-  org                   Org               @relation(fields: [org_id], references: [id])
-  supplier              Supplier          @relation(fields: [supplier_id], references: [id])
-  location              InventoryLocation @relation(fields: [receiving_location_id], references: [id])
-  creator               User              @relation(fields: [created_by], references: [id])
-  items                 PurchaseOrderItem[]
-  credit_txs            SupplierCreditTransaction[]
+  org        Org                         @relation(fields: [org_id], references: [id])
+  supplier   Supplier                    @relation(fields: [supplier_id], references: [id])
+  location   InventoryLocation           @relation(fields: [receiving_location_id], references: [id])
+  creator    User                        @relation(fields: [created_by], references: [id])
+  items      PurchaseOrderItem[]
+  credit_txs SupplierCreditTransaction[]
 }
 
 model PurchaseOrderItem {
@@ -386,36 +386,36 @@ model PurchaseOrderItem {
   status            POItemStatus @default(PENDING)
   notes             String?
 
-  po                PurchaseOrder @relation(fields: [po_id], references: [id])
-  product           Product       @relation(fields: [product_id], references: [id])
-  batches           StockBatch[]
+  po      PurchaseOrder @relation(fields: [po_id], references: [id])
+  product Product       @relation(fields: [product_id], references: [id])
+  batches StockBatch[]
 }
 
 model StockBatch {
-  id                      String   @id @default(uuid())
+  id                      String    @id @default(uuid())
   product_id              String
   supplier_id             String?
   po_item_id              String?
   received_at_location_id String
   batch_number            String
-  cost_price              Decimal  @db.Decimal(10, 2)
-  selling_price           Decimal  @db.Decimal(10, 2)
+  cost_price              Decimal   @db.Decimal(10, 2)
+  selling_price           Decimal   @db.Decimal(10, 2)
   quantity_received       Int
   expiry_date             DateTime?
-  received_at             DateTime @default(now())
+  received_at             DateTime  @default(now())
   created_by              String
-  created_at              DateTime @default(now())
-  updated_at              DateTime @updatedAt
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
 
-  product                 Product            @relation(fields: [product_id], references: [id])
-  supplier                Supplier?          @relation(fields: [supplier_id], references: [id])
-  po_item                 PurchaseOrderItem? @relation(fields: [po_item_id], references: [id])
-  location                InventoryLocation  @relation(fields: [received_at_location_id], references: [id])
-  creator                 User               @relation(fields: [created_by], references: [id])
-  
-  stocks                  InventoryStock[]
-  transactions            InventoryTransaction[]
-  bill_items              BillItem[]
+  product  Product            @relation(fields: [product_id], references: [id])
+  supplier Supplier?          @relation(fields: [supplier_id], references: [id])
+  po_item  PurchaseOrderItem? @relation(fields: [po_item_id], references: [id])
+  location InventoryLocation  @relation(fields: [received_at_location_id], references: [id])
+  creator  User               @relation(fields: [created_by], references: [id])
+
+  stocks       InventoryStock[]
+  transactions InventoryTransaction[]
+  bill_items   BillItem[]
 }
 
 model InventoryStock {
@@ -426,8 +426,8 @@ model InventoryStock {
   reorder_point    Int      @default(0)
   updated_at       DateTime @updatedAt
 
-  batch            StockBatch        @relation(fields: [batch_id], references: [id])
-  location         InventoryLocation @relation(fields: [location_id], references: [id])
+  batch    StockBatch        @relation(fields: [batch_id], references: [id])
+  location InventoryLocation @relation(fields: [location_id], references: [id])
 
   @@unique([batch_id, location_id])
 }
@@ -444,9 +444,9 @@ model InventoryTransaction {
   recorded_by      String
   created_at       DateTime                 @default(now())
 
-  batch            StockBatch        @relation(fields: [batch_id], references: [id])
-  location         InventoryLocation @relation(fields: [location_id], references: [id])
-  recorder         User              @relation(fields: [recorded_by], references: [id])
+  batch    StockBatch        @relation(fields: [batch_id], references: [id])
+  location InventoryLocation @relation(fields: [location_id], references: [id])
+  recorder User              @relation(fields: [recorded_by], references: [id])
 }
 
 // -----------------------------------------------------------------------------
@@ -463,8 +463,8 @@ model SupplierCreditAccount {
   created_at      DateTime      @default(now())
   updated_at      DateTime      @updatedAt
 
-  supplier        Supplier @relation(fields: [supplier_id], references: [id])
-  org             Org      @relation(fields: [org_id], references: [id])
+  supplier Supplier @relation(fields: [supplier_id], references: [id])
+  org      Org      @relation(fields: [org_id], references: [id])
 }
 
 model SupplierCreditTransaction {
@@ -482,10 +482,10 @@ model SupplierCreditTransaction {
   recorded_by      String
   created_at       DateTime                @default(now())
 
-  supplier         Supplier       @relation(fields: [supplier_id], references: [id])
-  org              Org            @relation(fields: [org_id], references: [id])
-  purchase_order   PurchaseOrder? @relation(fields: [po_id], references: [id])
-  recorder         User           @relation(fields: [recorded_by], references: [id])
+  supplier       Supplier       @relation(fields: [supplier_id], references: [id])
+  org            Org            @relation(fields: [org_id], references: [id])
+  purchase_order PurchaseOrder? @relation(fields: [po_id], references: [id])
+  recorder       User           @relation(fields: [recorded_by], references: [id])
 }
 
 // -----------------------------------------------------------------------------
@@ -512,11 +512,11 @@ model Customer {
   updated_at        DateTime  @updatedAt
   deleted_at        DateTime?
 
-  org               Org       @relation(fields: [org_id], references: [id])
-  credit_account    CustomerCreditAccount?
-  credit_txs        CustomerCreditTransaction[]
-  loyalty_txs       CustomerLoyaltyTransaction[]
-  bills             Bill[]
+  org            Org                          @relation(fields: [org_id], references: [id])
+  credit_account CustomerCreditAccount?
+  credit_txs     CustomerCreditTransaction[]
+  loyalty_txs    CustomerLoyaltyTransaction[]
+  bills          Bill[]
 }
 
 model CustomerCreditAccount {
@@ -529,8 +529,8 @@ model CustomerCreditAccount {
   created_at      DateTime      @default(now())
   updated_at      DateTime      @updatedAt
 
-  customer        Customer @relation(fields: [customer_id], references: [id])
-  org             Org      @relation(fields: [org_id], references: [id])
+  customer Customer @relation(fields: [customer_id], references: [id])
+  org      Org      @relation(fields: [org_id], references: [id])
 }
 
 model CustomerCreditTransaction {
@@ -545,10 +545,10 @@ model CustomerCreditTransaction {
   notes            String?
   created_at       DateTime                @default(now())
 
-  customer         Customer @relation(fields: [customer_id], references: [id])
-  org              Org      @relation(fields: [org_id], references: [id])
-  bill             Bill?    @relation(fields: [bill_id], references: [id])
-  recorder         User     @relation(fields: [recorded_by], references: [id])
+  customer Customer @relation(fields: [customer_id], references: [id])
+  org      Org      @relation(fields: [org_id], references: [id])
+  bill     Bill?    @relation(fields: [bill_id], references: [id])
+  recorder User     @relation(fields: [recorded_by], references: [id])
 }
 
 model CustomerLoyaltyTransaction {
@@ -562,9 +562,9 @@ model CustomerLoyaltyTransaction {
   notes                String?
   created_at           DateTime               @default(now())
 
-  customer             Customer @relation(fields: [customer_id], references: [id])
-  org                  Org      @relation(fields: [org_id], references: [id])
-  bill                 Bill     @relation(fields: [bill_id], references: [id])
+  customer Customer @relation(fields: [customer_id], references: [id])
+  org      Org      @relation(fields: [org_id], references: [id])
+  bill     Bill     @relation(fields: [bill_id], references: [id])
 }
 
 model LoyaltyProgramConfig {
@@ -578,7 +578,7 @@ model LoyaltyProgramConfig {
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
 
-  org                   Org      @relation(fields: [org_id], references: [id])
+  org Org @relation(fields: [org_id], references: [id])
 }
 
 // -----------------------------------------------------------------------------
@@ -603,33 +603,33 @@ model Bill {
   created_at     DateTime   @default(now())
   updated_at     DateTime   @updatedAt
 
-  org            Org               @relation(fields: [org_id], references: [id])
-  location       InventoryLocation @relation(fields: [location_id], references: [id])
-  customer       Customer?         @relation(fields: [customer_id], references: [id])
-  cashier        User              @relation("CashierBills", fields: [cashier_id], references: [id])
-  
-  items          BillItem[]
-  payments       BillPayment[]
-  credit_txs     CustomerCreditTransaction[]
-  loyalty_txs    CustomerLoyaltyTransaction[]
+  org      Org               @relation(fields: [org_id], references: [id])
+  location InventoryLocation @relation(fields: [location_id], references: [id])
+  customer Customer?         @relation(fields: [customer_id], references: [id])
+  cashier  User              @relation("CashierBills", fields: [cashier_id], references: [id])
+
+  items       BillItem[]
+  payments    BillPayment[]
+  credit_txs  CustomerCreditTransaction[]
+  loyalty_txs CustomerLoyaltyTransaction[]
 }
 
 model BillItem {
-  id              String   @id @default(uuid())
+  id              String  @id @default(uuid())
   bill_id         String
   product_id      String
   batch_id        String?
   price_id        String?
   quantity        Int
-  unit_price      Decimal  @db.Decimal(10, 2)
-  discount_amount Decimal  @default(0.00) @db.Decimal(10, 2)
-  line_total      Decimal  @db.Decimal(12, 2)
+  unit_price      Decimal @db.Decimal(10, 2)
+  discount_amount Decimal @default(0.00) @db.Decimal(10, 2)
+  line_total      Decimal @db.Decimal(12, 2)
   notes           String?
 
-  bill            Bill          @relation(fields: [bill_id], references: [id])
-  product         Product       @relation(fields: [product_id], references: [id])
-  batch           StockBatch?   @relation(fields: [batch_id], references: [id])
-  price           ProductPrice? @relation(fields: [price_id], references: [id])
+  bill    Bill          @relation(fields: [bill_id], references: [id])
+  product Product       @relation(fields: [product_id], references: [id])
+  batch   StockBatch?   @relation(fields: [batch_id], references: [id])
+  price   ProductPrice? @relation(fields: [price_id], references: [id])
 }
 
 model BillPayment {
@@ -641,6 +641,6 @@ model BillPayment {
   paid_at        DateTime      @default(now())
   recorded_by    String
 
-  bill           Bill @relation(fields: [bill_id], references: [id])
-  recorder       User @relation(fields: [recorded_by], references: [id])
+  bill     Bill @relation(fields: [bill_id], references: [id])
+  recorder User @relation(fields: [recorded_by], references: [id])
 }

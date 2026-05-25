@@ -1,5 +1,4 @@
 $kind: http-request
-name: Login
 url: http://localhost:3000/auth/login
 method: POST
 body:
@@ -11,4 +10,4 @@ body:
     \    \"password\": \"123456\"\r
 
     }"
-order: 1779532851885
+order: 1000

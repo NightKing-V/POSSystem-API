@@ -1,5 +1,4 @@
 $kind: http-request
-name: Register
 url: http://localhost:3000/auth/Register
 method: POST
 body:
@@ -11,4 +10,4 @@ body:
     \    \"password\": \"123456\"\r
 
     }"
-order: 4095346108308382
+order: 2000

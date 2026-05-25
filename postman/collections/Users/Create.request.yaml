@@ -1,0 +1,24 @@
+$kind: http-request
+name: Create
+url: http://localhost:3000/users
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"id\": \"0fc9fc4c-b00e-49b1-9ff2-566d9d2f948e\",\r
+
+    \  \"fullname\": \"Valenteno Lenora\",\r
+
+    \  \"email\": \"valentenocavlenora@gmail.com\",\r
+
+    \  \"phone\": \"+94763114242\",\r
+
+    \  \"address\": \"Colombo\"\r
+
+    }\r\n"
+auth:
+  type: bearer
+  credentials:
+    token: eyJhbGciOiJFUzI1NiIsImtpZCI6IjY0NWQxYWUxLTcwMjUtNGY1YS1hYjI1LTBjNTRjYmZjNmVmMSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2dvZGFrZ3NtZ2NhcGZ3ZmRnanBiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIwZmM5ZmM0Yy1iMDBlLTQ5YjEtOWZmMi01NjZkOWQyZjk0OGUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc5Nzc0MjkxLCJpYXQiOjE3Nzk3NzA2OTEsImVtYWlsIjoidmFsZW50ZW5vY2F2bGVub3JhQGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzc5NzcwNjkxfV0sInNlc3Npb25faWQiOiIzY2Q1ZWJiOC1lYmU0LTRhN2UtOTEzYy0wYTU0NTljMjhlNjciLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.tHBpP-lF5aCULMZVuI4hCL_6Fnc3awlXOp7gXSSzpJXftqh8FZ1XOdSKwrnlZhSLaHMTg2iuN44vnA_s6_R-BQ
+order: 1000
