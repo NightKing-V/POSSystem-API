@@ -17,13 +17,29 @@ import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
 import { CustomersModule } from './customers/customers.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { BillsModule } from './bills/bills.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    PrismaModule, UsersModule, AuthModule, RolesModule, OrgsModule, ProductsModule, CategoriesModule, BrandsModule, DiscountsModule, InventoryModule, SuppliersModule, PurchaseOrdersModule, CustomersModule, LoyaltyModule, BillsModule
+    PrismaModule,
+    UsersModule,
+    AuthModule,
+    RolesModule,
+    OrgsModule,
+    ProductsModule,
+    CategoriesModule,
+    BrandsModule,
+    DiscountsModule,
+    InventoryModule,
+    SuppliersModule,
+    PurchaseOrdersModule,
+    CustomersModule,
+    LoyaltyModule,
+    BillsModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
