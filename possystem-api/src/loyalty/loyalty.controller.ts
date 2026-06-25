@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { LoyaltyService } from './loyalty.service';
 import { CreateLoyaltyDto } from './dto/create-loyalty.dto';
 import { UpdateLoyaltyDto } from './dto/update-loyalty.dto';

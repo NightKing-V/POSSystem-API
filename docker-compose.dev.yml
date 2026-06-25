@@ -4,7 +4,7 @@ services:
       context: ./possystem-api
       target: builder # We use the stage that has devDependencies
     ports:
-      - "3000:3000"
+      - "3300:3000"
     volumes:
       - ./possystem-api:/app
       - /app/node_modules # This is a "trick" to keep container modules separate from local ones

@@ -7,12 +7,12 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('POS System API')
-    .setDescription('The POS System API endpoints description')
+    .setDescription('The POS System API description')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
 }

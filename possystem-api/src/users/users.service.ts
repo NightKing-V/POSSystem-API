@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
     const existingUser = await this.prisma.user.findUnique({
@@ -22,7 +22,7 @@ export class UsersService {
         email: createUserDto.email,
         fullname: createUserDto.fullname,
         phone: createUserDto.phone || undefined,
-        address: createUserDto.address || undefined
+        address: createUserDto.address || undefined,
       },
     });
   }
