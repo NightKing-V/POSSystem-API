@@ -42,6 +42,7 @@ describe('OrgsService', () => {
     },
     inventoryLocation: {
       findUnique: jest.fn(),
+      create: jest.fn(),
     },
   };
 

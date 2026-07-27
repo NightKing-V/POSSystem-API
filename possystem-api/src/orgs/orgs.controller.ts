@@ -30,8 +30,9 @@ export class OrgsController {
   }
 
   @Get()
-  findAll() {
-    return this.orgsService.findAll();
+  findAll(@Request() req: { user: { userId: string; email: string } }) {
+    const userId = req.user.userId;
+    return this.orgsService.findAll(userId);
   }
 
   @Get(':id')

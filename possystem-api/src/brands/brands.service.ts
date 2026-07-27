@@ -1,26 +1,69 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class BrandsService {
-  create(createBrandDto: CreateBrandDto) {
-    return 'This action adds a new brand';
+  constructor(private prisma: PrismaService) {}
+
+  async create(createBrandDto: CreateBrandDto) {
+    return this.prisma.brand.create({
+      data: {
+        name: createBrandDto.name,
+      },
+    });
   }
 
-  findAll() {
-    return `This action returns all brands`;
+  async findAll() {
+    return this.prisma.brand.findMany({
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} brand`;
+  async findOne(id: string) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
+    });
+    if (!brand) {
+      throw new NotFoundException(`Brand with ID "${id}" not found`);
+    }
+    return brand;
   }
 
-  update(id: number, updateBrandDto: UpdateBrandDto) {
-    return `This action updates a #${id} brand`;
+  async update(id: string, updateBrandDto: UpdateBrandDto) {
+    // Check if brand exists
+    await this.findOne(id);
+
+    return this.prisma.brand.update({
+      where: { id },
+      data: {
+        name: updateBrandDto.name,
+      },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} brand`;
+  async remove(id: string) {
+    const brand = await this.findOne(id);
+
+    if (brand._count.products > 0) {
+      throw new BadRequestException(
+        `Cannot delete brand with ID "${id}" because it has ${brand._count.products} associated product(s).`,
+      );
+    }
+
+    return this.prisma.brand.delete({
+      where: { id },
+    });
   }
 }
+
