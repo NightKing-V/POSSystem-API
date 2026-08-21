@@ -14,7 +14,16 @@ This report outlines the current implementation status of the **POS System API**
 | **Roles & Permissions** | 🟢 **Complete** | Full RBAC system: Custom Roles, Resource-specific Permissions, dynamic assignment of roles to users per organization, and `PermissionsGuard` for authorization. |
 | **Organizations Module** | 🟢 **Complete** | Org CRUD, owner initialization, and member invitation workflow (automates new user auth signup in Supabase, assigns default roles/locations, and triggers invitation emails). |
 | **Mail Module** | 🟢 **Complete** | Nodemailer integration supporting invitation and welcome-back emails. Falls back to console-logging (mock) if SMTP configs are not provided. |
-| **Business Modules** | 🟡 **In Progress** | **5 modules** fully implemented (Brands, Categories, Products & Pricing, Inventory Locations, Suppliers). **5 modules** are still stubs (Discounts, Purchase Orders, Customers, Loyalty, Bills). |
+| **Brands Module** | 🟢 **Complete** | Full database integration with cascade delete validation. |
+| **Categories Module** | 🟢 **Complete** | Self-referencing category tree, recursive level updates, and circular dependency checks. |
+| **Products & Pricing Module** | 🟢 **Complete** | Product CRUD with auto-generated unique SKUs/barcodes, plus nested pricing sub-routes and default price rules. |
+| **Inventory Module** | 🟢 **Complete** | InventoryLocation CRUD (branches, warehouses, docks) and UserLocation assignment APIs/lookups. |
+| **Suppliers Module** | 🟢 **Complete** | Database CRUD, link constraints (prevents deleting active suppliers), and supplied products list. |
+| **Discounts Module** | 🟢 **Complete** | Full database CRUD, support product/category scopes, and coupon validation route. |
+| **Purchase Orders Module** | 🟡 **Stub only** | Boilerplate stubs; needs Prisma database query logic. |
+| **Customers Module** | 🟢 **Complete** | Full database CRUD with soft delete implementation. |
+| **Loyalty Module** | 🟡 **Stub only** | Boilerplate stubs; needs Prisma database query logic. |
+| **Bills Module** | 🟢 **Complete** | Checkout billing transaction engine with FIFO stock deduction, customer/loyalty/credit transaction logging, and customizable taxes. |
 
 
 ---
@@ -90,14 +99,14 @@ classDiagram
 *   **[Products Module](file:///c:/Users/valal/Documents/Development/GitHub/POSSystem-API/possystem-api/src/products)**: Product catalog CRUD. Auto-generates unique SKUs and barcodes. Implements product prices CRUD and default price enforcement rules (ensuring exactly one active default price per product).
 *   **[Inventory Module](file:///c:/Users/valal/Documents/Development/GitHub/POSSystem-API/possystem-api/src/inventory)**: InventoryLocation CRUD covering branches, warehouses, and docks. Includes UserLocation assignment APIs (`/inventory/:locationId/users/:userId`) and lookup routes.
 *   **[Suppliers Module](file:///c:/Users/valal/Documents/Development/GitHub/POSSystem-API/possystem-api/src/suppliers)**: Database-backed Supplier CRUD. Restricts deletion if linked to active products, batches, or POs. Exposes supplier products lookup.
+*   **[Customers Module](file:///c:/Users/valal/Documents/Development/GitHub/POSSystem-API/possystem-api/src/customers)**: Database CRUD with unique phone constraints and soft delete by setting `deleted_at: DateTime`.
+*   **[Discounts Module](file:///c:/Users/valal/Documents/Development/GitHub/POSSystem-API/possystem-api/src/discounts)**: Database CRUD supporting PRODUCT, CATEGORY, and ORDER scopes, stackable logic, and coupon date and threshold validations (`/discounts/validate`).
+*   **[Bills Module](file:///c:/Users/valal/Documents/Development/GitHub/POSSystem-API/possystem-api/src/bills)**: Checkout billing engine featuring active discounts resolution, customizable taxes, FIFO inventory deduction, customer visit/spent updates, customer credit constraints, and customer loyalty point earning/redeeming transactions. Includes support for full cancellations/refunds.
 
 ### 2. Placeholder Modules (CLI CRUD Stubs)
 These modules exist and have standard controllers/routes defined, but their **services** currently return mock strings (e.g. `This action adds a new customer`). They need database queries via the `PrismaService`:
-*   **Discounts Module** (`/discounts`)
 *   **Purchase Orders Module** (`/purchase-orders`)
-*   **Customers Module** (`/customers`)
 *   **Loyalty Module** (`/loyalty`)
-*   **Bills Module** (`/bills`)
 
 
 ---

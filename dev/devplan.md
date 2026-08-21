@@ -20,9 +20,9 @@
 - [ ] **Supplier Credit Accounts (Week 8):** Develop supplier_credit_accounts CRUD and manage credit_transactions (invoiced, payment, credit note).
 
 ## Phase 4: Customers, Discounts & POS Billing (Weeks 9–11)
-- [ ] **Customers (Week 9):** Implement customers CRUD, incorporate soft delete functionality, and manage customer type logic.
-- [ ] **Discounts (Weeks 9–10):** Build Discounts CRUD, handle product_discounts and category_discounts, implement stackable/scope logic, and establish coupon validation.
-- [ ] **POS Billing (Weeks 10–11):** Develop bills, bill_items, and bill_payments APIs; build the discount application engine; handle inventory deduction upon sale; and implement reliable bill number generation.
+- [x] **Customers (Week 9):** Implement customers CRUD, incorporate soft delete functionality, and manage customer type logic.
+- [x] **Discounts (Weeks 9–10):** Build Discounts CRUD, handle product_discounts and category_discounts, implement stackable/scope logic, and establish coupon validation.
+- [x] **POS Billing (Weeks 10–11):** Develop bills, bill_items, and bill_payments APIs; build the discount application engine; handle inventory deduction upon sale; and implement reliable bill number generation.
 
 ## Phase 5: Loyalty, Customer Credit & Reporting (Weeks 12–14)
 - [ ] **Loyalty Programme (Week 12):** Create loyalty_program_config CRUD, manage point earning and redemption on bills, handle customer_loyalty_transactions, and schedule the expiry job.
