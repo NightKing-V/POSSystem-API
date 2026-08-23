@@ -35,6 +35,11 @@ export class OrgsController {
     return this.orgsService.findAll(userId);
   }
 
+  @Get('categories')
+  findAllCategories() {
+    return this.orgsService.findAllCategories();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.orgsService.findOne(id);

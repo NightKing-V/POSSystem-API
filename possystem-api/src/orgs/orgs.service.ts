@@ -7,6 +7,7 @@ import { UpdateOrgCommand } from './commands/update-org.command';
 import { DeleteOrgCommand } from './commands/delete-org.command';
 import { GetOrgsQuery } from './queries/get-orgs.query';
 import { GetOrgQuery } from './queries/get-org.query';
+import { GetBusinessCategoriesQuery } from './queries/get-business-categories.query';
 import { CreateOrgCommand } from '../workflows/commands/create-org.command';
 import { InviteMemberCommand } from '../workflows/commands/invite-member.command';
 
@@ -23,6 +24,10 @@ export class OrgsService {
 
   async findAll(userId?: string) {
     return this.queryBus.execute(new GetOrgsQuery(userId));
+  }
+
+  async findAllCategories() {
+    return this.queryBus.execute(new GetBusinessCategoriesQuery());
   }
 
   async findOne(id: string) {

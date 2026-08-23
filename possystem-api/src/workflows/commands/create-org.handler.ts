@@ -10,48 +10,63 @@ export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand> {
   async execute(command: CreateOrgCommand) {
     const { createOrgDto, ownerId } = command;
 
-    // Resolve categoryId
-    let categoryId = createOrgDto.businesscategory_id;
+    // 1. Resolve business category dynamically from the database
+    let category: { id: string; type: string } | null = null;
 
-    if (!categoryId && createOrgDto.businessType) {
-      let categoryType = 'SERVICES';
-      const typeLower = createOrgDto.businessType.toLowerCase();
-      if (typeLower === 'retail') categoryType = 'RETAIL';
-      else if (typeLower === 'restaurant') categoryType = 'RESTAURANT';
-      else if (typeLower === 'service') categoryType = 'SERVICES';
-      else if (typeLower === 'apparel') categoryType = 'APPAREL';
-      else if (typeLower === 'supermarket') categoryType = 'SUPERMARKET';
-      else if (typeLower === 'pharmacy') categoryType = 'PHARMACY';
-      else if (typeLower === 'electronics') categoryType = 'ELECTRONICS';
-
-      let category = await this.prisma.businessCategory.findFirst({
-        where: { type: categoryType },
+    if (createOrgDto.businesscategory_id) {
+      // Try by ID first
+      category = await this.prisma.businessCategory.findUnique({
+        where: { id: createOrgDto.businesscategory_id },
       });
+
+      // If not found by ID, try matching type case-insensitively
       if (!category) {
-        category = await this.prisma.businessCategory.findFirst();
-      }
-      if (!category) {
-        category = await this.prisma.businessCategory.create({
-          data: { type: categoryType },
+        category = await this.prisma.businessCategory.findFirst({
+          where: {
+            type: {
+              equals: createOrgDto.businesscategory_id.trim(),
+              mode: 'insensitive',
+            },
+          },
         });
       }
-      categoryId = category.id;
     }
 
-    if (!categoryId) {
+    if (!category && createOrgDto.businessType) {
+      const typeTrimmed = createOrgDto.businessType.trim();
+
+      // Check by ID if UUID was passed as businessType
+      category = await this.prisma.businessCategory.findUnique({
+        where: { id: typeTrimmed },
+      });
+
+      // Find by type case-insensitively in database
+      if (!category) {
+        category = await this.prisma.businessCategory.findFirst({
+          where: {
+            type: {
+              equals: typeTrimmed,
+              mode: 'insensitive',
+            },
+          },
+        });
+      }
+
+      // If still not found, create new business category dynamically in database
+      if (!category) {
+        category = await this.prisma.businessCategory.create({
+          data: {
+            type: typeTrimmed.toUpperCase(),
+          },
+        });
+      }
+    }
+
+    if (!category) {
       throw new BadRequestException('Business category is required');
     }
 
-    // Verify business category exists
-    const category = await this.prisma.businessCategory.findUnique({
-      where: { id: categoryId },
-    });
-
-    if (!category) {
-      throw new BadRequestException('Business category not found');
-    }
-
-    // Verify owner user exists
+    // 2. Verify owner user exists
     const owner = await this.prisma.user.findUnique({
       where: { id: ownerId },
     });
@@ -60,17 +75,17 @@ export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand> {
       throw new NotFoundException('Owner user not found');
     }
 
-    // Create the organization
+    // 3. Create the organization
     const org = await this.prisma.org.create({
       data: {
         owner_id: ownerId,
-        businesscategory_id: categoryId,
+        businesscategory_id: category.id,
         address: createOrgDto.address || null,
         phone: createOrgDto.phone || null,
       },
     });
 
-    // Assign owner to the default Owner role in UserRole
+    // 4. Assign owner to the default Owner role in UserRole
     let ownerRole = await this.prisma.role.findFirst({
       where: { name: 'Owner' },
     });
@@ -95,7 +110,7 @@ export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand> {
       },
     });
 
-    // Create default InventoryLocation (Branch)
+    // 5. Create default InventoryLocation (Branch)
     await this.prisma.inventoryLocation.create({
       data: {
         org_id: org.id,

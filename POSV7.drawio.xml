@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mxfile host="app.diagrams.net">
   <diagram name="POS Schema v5" id="IbbJxOxedmjHV097A3Pr">
+  <diagram name="POS Schema v7" id="IbbJxOxedmjHV097A3Pr">
     <mxGraphModel dx="2075" dy="773" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
@@ -9,6 +10,7 @@
           <mxGeometry height="220" width="190" x="40" y="80" as="geometry" />
         </mxCell>
         <mxCell id="DiTsqhUCHcymduEqA7v5-107" parent="DiTsqhUCHcymduEqA7v5-106" style="align=left;strokeColor=none;fillColor=none;spacingLeft=6;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;whiteSpace=wrap;" value="id (PK)&lt;br&gt;fullname&lt;br&gt;email&lt;br&gt;phone&lt;br&gt;password_hash&lt;br&gt;createdat&lt;br&gt;modifiedat&lt;br&gt;lastlogin" vertex="1">
+        <mxCell id="DiTsqhUCHcymduEqA7v5-107" parent="DiTsqhUCHcymduEqA7v5-106" style="align=left;strokeColor=none;fillColor=none;spacingLeft=6;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;whiteSpace=wrap;" value="id (PK - Auth UUID)&lt;br&gt;email (UK)&lt;br&gt;fullname&lt;br&gt;phone&lt;br&gt;address&lt;br&gt;createdat&lt;br&gt;modifiedat&lt;br&gt;lastlogin" vertex="1">
           <mxGeometry height="190" width="190" y="30" as="geometry" />
         </mxCell>
         <mxCell id="DiTsqhUCHcymduEqA7v5-108" parent="1" style="swimlane;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;rounded=1;fontSize=14;fontStyle=1;strokeWidth=2;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=4;whiteSpace=wrap;html=1;" value="roles" vertex="1">
@@ -69,6 +71,7 @@
           <mxGeometry height="230" width="200" x="860" y="270" as="geometry" />
         </mxCell>
         <mxCell id="DiTsqhUCHcymduEqA7v5-127" parent="DiTsqhUCHcymduEqA7v5-126" style="align=left;strokeColor=none;fillColor=none;spacingLeft=6;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;whiteSpace=wrap;" value="id (PK)&lt;br&gt;subcategoryid (FK)&lt;br&gt;barcode&lt;br&gt;SKU&lt;br&gt;name&lt;br&gt;brandid (FK)&lt;br&gt;supplier_id (FK)&lt;br&gt;createdat&lt;br&gt;modifiedat" vertex="1">
+        <mxCell id="DiTsqhUCHcymduEqA7v5-127" parent="DiTsqhUCHcymduEqA7v5-126" style="align=left;strokeColor=none;fillColor=none;spacingLeft=6;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;whiteSpace=wrap;" value="id (PK)&lt;br&gt;category_id (FK)&lt;br&gt;brand_id (FK, nullable)&lt;br&gt;supplier_id (FK, nullable)&lt;br&gt;barcode (UK, nullable)&lt;br&gt;sku (UK, nullable)&lt;br&gt;name&lt;br&gt;description&lt;br&gt;createdat&lt;br&gt;modifiedat" vertex="1">
           <mxGeometry height="200" width="200" y="30" as="geometry" />
         </mxCell>
         <mxCell id="DiTsqhUCHcymduEqA7v5-128" parent="1" style="swimlane;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;rounded=1;fontSize=14;fontStyle=1;strokeWidth=2;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#000000;arcSize=4;whiteSpace=wrap;html=1;" value="product_prices" vertex="1">
@@ -87,12 +90,14 @@
           <mxGeometry height="110" width="200" x="1110" y="560" as="geometry" />
         </mxCell>
         <mxCell id="DiTsqhUCHcymduEqA7v5-133" parent="DiTsqhUCHcymduEqA7v5-132" style="align=left;strokeColor=none;fillColor=none;spacingLeft=6;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;whiteSpace=wrap;" value="product_id (FK)&lt;br&gt;discount_id (FK)&lt;br&gt;priority" vertex="1">
+        <mxCell id="DiTsqhUCHcymduEqA7v5-133" parent="DiTsqhUCHcymduEqA7v5-132" style="align=left;strokeColor=none;fillColor=none;spacingLeft=6;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;whiteSpace=wrap;" value="product_id (PK, FK)&lt;br&gt;discount_id (PK, FK)" vertex="1">
           <mxGeometry height="80" width="200" y="30" as="geometry" />
         </mxCell>
         <mxCell id="DiTsqhUCHcymduEqA7v5-134" parent="1" style="swimlane;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;rounded=1;fontSize=14;fontStyle=1;strokeWidth=2;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#000000;arcSize=4;whiteSpace=wrap;html=1;" value="category_discounts" vertex="1">
           <mxGeometry height="110" width="200" x="1110" y="310" as="geometry" />
         </mxCell>
         <mxCell id="DiTsqhUCHcymduEqA7v5-135" parent="DiTsqhUCHcymduEqA7v5-134" style="align=left;strokeColor=none;fillColor=none;spacingLeft=6;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;whiteSpace=wrap;" value="category_id (FK)&lt;br&gt;discount_id (FK)&lt;br&gt;inherit" vertex="1">
+        <mxCell id="DiTsqhUCHcymduEqA7v5-135" parent="DiTsqhUCHcymduEqA7v5-134" style="align=left;strokeColor=none;fillColor=none;spacingLeft=6;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;whiteSpace=wrap;" value="category_id (PK, FK)&lt;br&gt;discount_id (PK, FK)" vertex="1">
           <mxGeometry height="80" width="200" y="30" as="geometry" />
         </mxCell>
         <mxCell id="DiTsqhUCHcymduEqA7v5-136" parent="1" style="swimlane;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;rounded=1;fontSize=14;fontStyle=1;strokeWidth=2;fillColor=#dae8fc;strokeColor=#23445d;fontColor=#000000;arcSize=4;whiteSpace=wrap;html=1;" value="inventory_locations" vertex="1">
