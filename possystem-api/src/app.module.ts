@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { CqrsModule } from '@nestjs/cqrs';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -18,10 +19,12 @@ import { CustomersModule } from './customers/customers.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { BillsModule } from './bills/bills.module';
 import { MailModule } from './mail/mail.module';
+import { WorkflowsModule } from './workflows/workflows.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    CqrsModule.forRoot(),
     PrismaModule,
     UsersModule,
     AuthModule,
@@ -38,6 +41,7 @@ import { MailModule } from './mail/mail.module';
     LoyaltyModule,
     BillsModule,
     MailModule,
+    WorkflowsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

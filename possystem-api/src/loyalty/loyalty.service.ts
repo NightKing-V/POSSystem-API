@@ -1,26 +1,41 @@
 import { Injectable } from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateLoyaltyDto } from './dto/create-loyalty.dto';
 import { UpdateLoyaltyDto } from './dto/update-loyalty.dto';
+import { CreateLoyaltyCommand } from './commands/create-loyalty.command';
+import { UpdateLoyaltyCommand } from './commands/update-loyalty.command';
+import { DeleteLoyaltyCommand } from './commands/delete-loyalty.command';
+import { GetLoyaltiesQuery } from './queries/get-loyalties.query';
+import { GetLoyaltyQuery } from './queries/get-loyalty.query';
 
 @Injectable()
 export class LoyaltyService {
-  create(createLoyaltyDto: CreateLoyaltyDto) {
-    return 'This action adds a new loyalty';
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
+
+  async create(createLoyaltyDto: CreateLoyaltyDto) {
+    return this.commandBus.execute(
+      new CreateLoyaltyCommand(createLoyaltyDto),
+    );
   }
 
-  findAll() {
-    return `This action returns all loyalty`;
+  async findAll() {
+    return this.queryBus.execute(new GetLoyaltiesQuery());
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} loyalty`;
+  async findOne(id: number) {
+    return this.queryBus.execute(new GetLoyaltyQuery(id));
   }
 
-  update(id: number, updateLoyaltyDto: UpdateLoyaltyDto) {
-    return `This action updates a #${id} loyalty`;
+  async update(id: number, updateLoyaltyDto: UpdateLoyaltyDto) {
+    return this.commandBus.execute(
+      new UpdateLoyaltyCommand(id, updateLoyaltyDto),
+    );
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} loyalty`;
+  async remove(id: number) {
+    return this.commandBus.execute(new DeleteLoyaltyCommand(id));
   }
 }

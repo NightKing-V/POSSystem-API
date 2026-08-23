@@ -1,20 +1,32 @@
 import {
   Injectable,
   BadRequestException,
-  UnauthorizedException,
 } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { PrismaService } from '../prisma/prisma.service';
+import { LoginCommand } from './commands/login.command';
+import { ForgotPasswordCommand } from './commands/forgot-password.command';
+import { ResetPasswordCommand } from './commands/reset-password.command';
+import { RegisterUserCommand } from '../workflows/commands/registeruser.command';
 
 @Injectable()
 export class AuthService {
   private supabase: SupabaseClient;
 
-  constructor(private prisma: PrismaService) {
+  constructor(private readonly commandBus: CommandBus) {
     this.supabase = createClient(
       process.env.SUPABASE_URL || 'https://placeholder.supabase.co',
       process.env.SUPABASE_ANON_KEY || 'placeholder',
     );
+  }
+
+  async signUpSupabase(email: string, password: string) {
+    const { data, error } = await this.supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) throw new BadRequestException(error.message);
+    return data;
   }
 
   async register(
@@ -23,71 +35,24 @@ export class AuthService {
     fullname?: string,
     phone?: string,
   ) {
-    // 1. Register the user in Supabase auth
-    const { data, error } = await this.supabase.auth.signUp({
-      email,
-      password,
-    });
-    if (error) throw new BadRequestException(error.message);
-    if (!data.user) throw new BadRequestException('User registration failed in Auth provider');
-
-    const userId = data.user.id;
-
-    // 2. Create the user profile locally in Postgres
-    const user = await this.prisma.user.create({
-      data: {
-        id: userId,
-        email,
-        fullname: fullname || email.split('@')[0],
-        phone: phone || null,
-      },
-    });
-
-    return data;
+    return this.commandBus.execute(
+      new RegisterUserCommand(email, password, fullname, phone),
+    );
   }
 
   async login(email: string, password: string) {
-    const { data, error } = await this.supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw new UnauthorizedException(error.message);
-    return data;
+    return this.commandBus.execute(new LoginCommand(email, password));
   }
 
   async forgotPassword(email: string, redirectTo?: string) {
-    const { data, error } = await this.supabase.auth.resetPasswordForEmail(
-      email,
-      {
-        redirectTo: redirectTo || undefined,
-      },
+    return this.commandBus.execute(
+      new ForgotPasswordCommand(email, redirectTo),
     );
-    if (error) throw new BadRequestException(error.message);
-    return data;
   }
 
   async resetPassword(accessToken: string, newPassword: string) {
-    const tempSupabase = createClient(
-      process.env.SUPABASE_URL || 'https://placeholder.supabase.co',
-      process.env.SUPABASE_ANON_KEY || 'placeholder',
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-        global: {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      },
+    return this.commandBus.execute(
+      new ResetPasswordCommand(accessToken, newPassword),
     );
-
-    const { data, error } = await tempSupabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (error) throw new BadRequestException(error.message);
-    return data;
   }
 }

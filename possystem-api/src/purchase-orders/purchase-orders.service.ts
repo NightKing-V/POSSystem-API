@@ -1,26 +1,41 @@
 import { Injectable } from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
+import { CreatePurchaseOrderCommand } from './commands/create-purchase-order.command';
+import { UpdatePurchaseOrderCommand } from './commands/update-purchase-order.command';
+import { DeletePurchaseOrderCommand } from './commands/delete-purchase-order.command';
+import { GetPurchaseOrdersQuery } from './queries/get-purchase-orders.query';
+import { GetPurchaseOrderQuery } from './queries/get-purchase-order.query';
 
 @Injectable()
 export class PurchaseOrdersService {
-  create(createPurchaseOrderDto: CreatePurchaseOrderDto) {
-    return 'This action adds a new purchaseOrder';
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
+
+  async create(createPurchaseOrderDto: CreatePurchaseOrderDto) {
+    return this.commandBus.execute(
+      new CreatePurchaseOrderCommand(createPurchaseOrderDto),
+    );
   }
 
-  findAll() {
-    return `This action returns all purchaseOrders`;
+  async findAll() {
+    return this.queryBus.execute(new GetPurchaseOrdersQuery());
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} purchaseOrder`;
+  async findOne(id: number) {
+    return this.queryBus.execute(new GetPurchaseOrderQuery(id));
   }
 
-  update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto) {
-    return `This action updates a #${id} purchaseOrder`;
+  async update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto) {
+    return this.commandBus.execute(
+      new UpdatePurchaseOrderCommand(id, updatePurchaseOrderDto),
+    );
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} purchaseOrder`;
+  async remove(id: number) {
+    return this.commandBus.execute(new DeletePurchaseOrderCommand(id));
   }
 }

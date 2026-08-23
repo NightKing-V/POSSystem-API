@@ -1,14 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CqrsModule } from '@nestjs/cqrs';
 import { RolesService } from './roles.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { RoleCommandHandlers } from './commands';
+import { RoleQueryHandlers } from './queries';
 
 describe('RolesService', () => {
   let service: RolesService;
   let prisma: any;
+  let module: TestingModule;
 
   const mockPrisma = {
     role: {
@@ -45,17 +49,28 @@ describe('RolesService', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
+      imports: [CqrsModule],
       providers: [
         RolesService,
+        ...RoleCommandHandlers,
+        ...RoleQueryHandlers,
         { provide: PrismaService, useValue: mockPrisma },
       ],
     }).compile();
+
+    await module.init();
 
     service = module.get<RolesService>(RolesService);
     prisma = module.get<PrismaService>(PrismaService);
 
     jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

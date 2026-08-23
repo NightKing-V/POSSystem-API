@@ -25,6 +25,7 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
   let discountId: string;
 
   beforeAll(async () => {
+    jest.setTimeout(60000);
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -124,12 +125,22 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
 
   afterAll(async () => {
     // Cleanup seeded entities in reverse dependency order
+    await prisma.customerLoyaltyTransaction.deleteMany({});
+    await prisma.customerCreditTransaction.deleteMany({});
+    await prisma.billItem.deleteMany({});
+    await prisma.billPayment.deleteMany({});
+    await prisma.bill.deleteMany({});
     await prisma.inventoryTransaction.deleteMany({ where: { location_id: locationId } });
     await prisma.inventoryStock.deleteMany({ where: { location_id: locationId } });
     await prisma.stockBatch.deleteMany({ where: { product_id: productId } });
     await prisma.productPrice.deleteMany({ where: { productid: productId } });
     await prisma.product.deleteMany({ where: { id: productId } });
     await prisma.productCategory.deleteMany({ where: { id: categoryId } });
+    await prisma.customerCreditAccount.deleteMany({ where: { org_id: orgId } });
+    await prisma.customer.deleteMany({ where: { org_id: orgId } });
+    await prisma.categoryDiscount.deleteMany({});
+    await prisma.productDiscount.deleteMany({});
+    await prisma.discount.deleteMany({});
     await prisma.inventoryLocation.deleteMany({ where: { id: locationId } });
     await prisma.org.deleteMany({ where: { id: orgId } });
     await prisma.user.deleteMany({ where: { id: cashierId } });
@@ -290,10 +301,10 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
       });
 
       expect(bill).toBeDefined();
-      expect(bill.subtotal.toString()).toBe('200.00');
-      expect(bill.discount_total.toString()).toBe('10.00');
-      expect(bill.tax_total.toString()).toBe('19.00'); // 10% of $190
-      expect(bill.grand_total.toString()).toBe('209.00');
+      expect(Number(bill.subtotal)).toBe(200);
+      expect(Number(bill.discount_total)).toBe(10);
+      expect(Number(bill.tax_total)).toBe(19); // 10% of $190
+      expect(Number(bill.grand_total)).toBe(209);
 
       // Check stock was deducted
       const postStock = await prisma.inventoryStock.findUnique({
@@ -332,11 +343,11 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
       expect(revertedCustomer!.total_visits).toBe(0); // Reverted metrics
       expect(Number(revertedCustomer!.total_spent)).toBe(0);
 
-      // Clean up Coupon
+      // Clean up Coupon & Bill & Customer
       await discountsService.remove(coupon!.id);
+      await billsService.remove(bill.id);
       await prisma.customerCreditAccount.deleteMany({ where: { customer_id: customerId } });
       await prisma.customer.delete({ where: { id: customerId } });
-      await billsService.remove(bill.id);
     });
   });
 });

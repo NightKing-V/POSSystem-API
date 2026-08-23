@@ -1,45 +1,37 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PrismaService } from '../prisma/prisma.service';
+import { CreateUserCommand } from './commands/create-user.command';
+import { UpdateUserCommand } from './commands/update-user.command';
+import { DeleteUserCommand } from './commands/delete-user.command';
+import { GetUsersQuery } from './queries/get-users.query';
+import { GetUserQuery } from './queries/get-user.query';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: createUserDto.email },
-    });
-
-    if (existingUser) {
-      throw new ConflictException('User with this email already exists');
-    }
-
-    return this.prisma.user.create({
-      data: {
-        id: createUserDto.id || undefined,
-        email: createUserDto.email,
-        fullname: createUserDto.fullname,
-        phone: createUserDto.phone || undefined,
-        address: createUserDto.address || undefined,
-      },
-    });
+    return this.commandBus.execute(new CreateUserCommand(createUserDto));
   }
 
   async findAll() {
-    return this.prisma.user.findMany();
+    return this.queryBus.execute(new GetUsersQuery());
   }
 
   async findOne(id: string) {
-    return this.prisma.user.findUnique({ where: { id } });
+    return this.queryBus.execute(new GetUserQuery(id));
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
-    return this.prisma.user.update({ where: { id }, data: updateUserDto });
+    return this.commandBus.execute(new UpdateUserCommand(id, updateUserDto));
   }
 
   async remove(id: string) {
-    return this.prisma.user.delete({ where: { id } });
+    return this.commandBus.execute(new DeleteUserCommand(id));
   }
 }

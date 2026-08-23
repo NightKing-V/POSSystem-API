@@ -1,19 +1,27 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CqrsModule } from '@nestjs/cqrs';
 import { OrgsService } from './orgs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { MailService } from '../mail/mail.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { OrgCommandHandlers } from './commands';
+import { OrgQueryHandlers } from './queries';
+import { CreateOrgHandler } from '../workflows/commands/create-org.handler';
+import { InviteMemberHandler } from '../workflows/commands/invite-member.handler';
 
 describe('OrgsService', () => {
   let service: OrgsService;
   let prisma: any;
   let authService: any;
   let mailService: any;
+  let module: TestingModule;
 
   const mockPrisma = {
     businessCategory: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
     },
     user: {
       findUnique: jest.fn(),
@@ -56,14 +64,21 @@ describe('OrgsService', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
+      imports: [CqrsModule],
       providers: [
         OrgsService,
+        ...OrgCommandHandlers,
+        ...OrgQueryHandlers,
+        CreateOrgHandler,
+        InviteMemberHandler,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AuthService, useValue: mockAuthService },
         { provide: MailService, useValue: mockMailService },
       ],
     }).compile();
+
+    await module.init();
 
     service = module.get<OrgsService>(OrgsService);
     prisma = module.get<PrismaService>(PrismaService);
@@ -71,6 +86,12 @@ describe('OrgsService', () => {
     mailService = module.get<MailService>(MailService);
 
     jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {
@@ -168,7 +189,7 @@ describe('OrgsService', () => {
 
     it('should register new user in auth, create profile and send invitation email', async () => {
       prisma.org.findUnique.mockResolvedValue({ id: 'org-id' });
-      prisma.user.findUnique.mockResolvedValue(null); // not existing
+      prisma.user.findUnique.mockResolvedValue(null);
       authService.register.mockResolvedValue({ user: { id: 'new-user-uuid' } });
       prisma.user.create.mockResolvedValue({
         id: 'new-user-uuid',

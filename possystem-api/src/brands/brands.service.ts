@@ -1,69 +1,37 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
-import { PrismaService } from '../prisma/prisma.service';
+import { CreateBrandCommand } from './commands/create-brand.command';
+import { UpdateBrandCommand } from './commands/update-brand.command';
+import { DeleteBrandCommand } from './commands/delete-brand.command';
+import { GetBrandsQuery } from './queries/get-brands.query';
+import { GetBrandQuery } from './queries/get-brand.query';
 
 @Injectable()
 export class BrandsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   async create(createBrandDto: CreateBrandDto) {
-    return this.prisma.brand.create({
-      data: {
-        name: createBrandDto.name,
-      },
-    });
+    return this.commandBus.execute(new CreateBrandCommand(createBrandDto));
   }
 
   async findAll() {
-    return this.prisma.brand.findMany({
-      include: {
-        _count: {
-          select: { products: true },
-        },
-      },
-    });
+    return this.queryBus.execute(new GetBrandsQuery());
   }
 
   async findOne(id: string) {
-    const brand = await this.prisma.brand.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { products: true },
-        },
-      },
-    });
-    if (!brand) {
-      throw new NotFoundException(`Brand with ID "${id}" not found`);
-    }
-    return brand;
+    return this.queryBus.execute(new GetBrandQuery(id));
   }
 
   async update(id: string, updateBrandDto: UpdateBrandDto) {
-    // Check if brand exists
-    await this.findOne(id);
-
-    return this.prisma.brand.update({
-      where: { id },
-      data: {
-        name: updateBrandDto.name,
-      },
-    });
+    return this.commandBus.execute(new UpdateBrandCommand(id, updateBrandDto));
   }
 
   async remove(id: string) {
-    const brand = await this.findOne(id);
-
-    if (brand._count.products > 0) {
-      throw new BadRequestException(
-        `Cannot delete brand with ID "${id}" because it has ${brand._count.products} associated product(s).`,
-      );
-    }
-
-    return this.prisma.brand.delete({
-      where: { id },
-    });
+    return this.commandBus.execute(new DeleteBrandCommand(id));
   }
 }
-
