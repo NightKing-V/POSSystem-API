@@ -1,5 +1,8 @@
 import { ICommand } from '@nestjs/cqrs';
 
 export class DeleteInventoryCommand implements ICommand {
-  constructor(public readonly id: string) {}
+  constructor(
+    public readonly id: string,
+    public readonly force?: boolean,
+  ) {}
 }

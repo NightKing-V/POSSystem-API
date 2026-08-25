@@ -9,6 +9,7 @@ import { CreateOrgHandler } from './commands/create-org.handler';
 import { InviteMemberHandler } from './commands/invite-member.handler';
 import { CreateBillHandler } from './commands/create-bill.handler';
 import { CancelBillHandler } from './commands/cancel-bill.handler';
+import { DeleteUserWorkflowHandler } from './commands/delete-user-workflow.handler';
 
 const CommandHandlers = [
   RegisterUserHandler,
@@ -16,6 +17,7 @@ const CommandHandlers = [
   InviteMemberHandler,
   CreateBillHandler,
   CancelBillHandler,
+  DeleteUserWorkflowHandler,
 ];
 
 @Module({

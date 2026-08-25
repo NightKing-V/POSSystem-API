@@ -50,3 +50,13 @@ export class ResetPasswordDto {
   @IsString()
   accessToken!: string;
 }
+
+export class VerifyOtpDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @MinLength(6, { message: 'Token must be a 6-digit code' })
+  token!: string;
+}
+

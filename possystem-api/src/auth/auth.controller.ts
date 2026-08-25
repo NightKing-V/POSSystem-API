@@ -5,6 +5,7 @@ import {
   RegisterDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  VerifyOtpDto,
 } from './dto/auth.dto';
 
 @Controller('auth')
@@ -19,6 +20,11 @@ export class AuthController {
       registerDto.fullname,
       registerDto.phone,
     );
+  }
+
+  @Post('verify')
+  verify(@Body() verifyOtpDto: VerifyOtpDto) {
+    return this.authService.verifyRegistrationOtp(verifyOtpDto);
   }
 
   @Post('login')

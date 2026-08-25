@@ -4,7 +4,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserCommand } from './commands/create-user.command';
 import { UpdateUserCommand } from './commands/update-user.command';
-import { DeleteUserCommand } from './commands/delete-user.command';
+import { DeleteUserWorkflowCommand } from '../workflows/commands/delete-user-workflow.command';
 import { GetUsersQuery } from './queries/get-users.query';
 import { GetUserQuery } from './queries/get-user.query';
 
@@ -32,6 +32,6 @@ export class UsersService {
   }
 
   async remove(id: string) {
-    return this.commandBus.execute(new DeleteUserCommand(id));
+    return this.commandBus.execute(new DeleteUserWorkflowCommand(id));
   }
 }

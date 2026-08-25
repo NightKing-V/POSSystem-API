@@ -9,14 +9,14 @@ export class DeleteBillHandler implements ICommandHandler<DeleteBillCommand> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(command: DeleteBillCommand) {
-    const { id } = command;
+    const { id, force } = command;
 
     const bill = await this.prisma.bill.findUnique({ where: { id } });
     if (!bill) {
       throw new NotFoundException(`Bill with ID "${id}" not found`);
     }
 
-    if (bill.status !== BillStatus.CANCELLED) {
+    if (!force && bill.status !== BillStatus.CANCELLED) {
       throw new BadRequestException(
         'Only cancelled bills can be deleted from logs',
       );

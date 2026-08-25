@@ -8,7 +8,7 @@ export class DeleteSupplierHandler implements ICommandHandler<DeleteSupplierComm
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(command: DeleteSupplierCommand) {
-    const { id } = command;
+    const { id, force } = command;
 
     const supplier = await this.prisma.supplier.findUnique({
       where: { id },
@@ -23,26 +23,42 @@ export class DeleteSupplierHandler implements ICommandHandler<DeleteSupplierComm
       throw new NotFoundException(`Supplier with ID "${id}" not found`);
     }
 
-    if (supplier._count.products > 0) {
-      throw new BadRequestException(
-        `Cannot delete supplier with ID "${id}" because they are linked to ${supplier._count.products} products.`,
-      );
+    if (!force) {
+      if (supplier._count.products > 0) {
+        throw new BadRequestException(
+          `Cannot delete supplier with ID "${id}" because they are linked to ${supplier._count.products} products.`,
+        );
+      }
+
+      if (supplier._count.batches > 0) {
+        throw new BadRequestException(
+          `Cannot delete supplier with ID "${id}" because they are linked to ${supplier._count.batches} stock batches.`,
+        );
+      }
+
+      if (supplier._count.purchase_orders > 0) {
+        throw new BadRequestException(
+          `Cannot delete supplier with ID "${id}" because they are linked to ${supplier._count.purchase_orders} purchase orders.`,
+        );
+      }
     }
 
-    if (supplier._count.batches > 0) {
-      throw new BadRequestException(
-        `Cannot delete supplier with ID "${id}" because they are linked to ${supplier._count.batches} stock batches.`,
-      );
-    }
+    return this.prisma.$transaction(async (tx) => {
+      if (force) {
+        // Nullify on products
+        await tx.product.updateMany({
+          where: { supplier_id: id },
+          data: { supplier_id: null },
+        });
 
-    if (supplier._count.purchase_orders > 0) {
-      throw new BadRequestException(
-        `Cannot delete supplier with ID "${id}" because they are linked to ${supplier._count.purchase_orders} purchase orders.`,
-      );
-    }
+        // Delete credit info
+        await tx.supplierCreditTransaction.deleteMany({ where: { supplier_id: id } });
+        await tx.supplierCreditAccount.deleteMany({ where: { supplier_id: id } });
+      }
 
-    return this.prisma.supplier.delete({
-      where: { id },
+      return tx.supplier.delete({
+        where: { id },
+      });
     });
   }
 }
