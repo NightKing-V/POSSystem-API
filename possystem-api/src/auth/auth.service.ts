@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   BadRequestException,
   Logger,
@@ -104,12 +104,13 @@ export class AuthService {
     );
   }
 
-  async verifyRegistrationOtp(dto: { email: string; token: string }) {
-    this.logger.debug(`Verifying signup OTP for email: ${dto.email}`);
+  async verifyRegistrationOtp(dto: { email: string; token: string; type?: any }) {
+    const otpType = dto.type || 'signup';
+    this.logger.debug(`Verifying OTP for email: ${dto.email} with type: ${otpType}`);
     const { data, error } = await this.supabase.auth.verifyOtp({
       email: dto.email,
       token: dto.token,
-      type: 'signup',
+      type: otpType as any,
     });
 
     if (error) {
@@ -119,7 +120,7 @@ export class AuthService {
 
     this.logger.log(`OTP successfully verified for ${dto.email}`);
     return {
-      message: 'Email successfully verified.',
+      message: 'OTP successfully verified.',
       accessToken: data.session?.access_token,
       refreshToken: data.session?.refresh_token,
       user: {

@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+﻿import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @IsEmail()
@@ -58,5 +58,8 @@ export class VerifyOtpDto {
   @IsString()
   @MinLength(6, { message: 'Token must be a 6-digit code' })
   token!: string;
-}
 
+  @IsString()
+  @IsOptional()
+  type?: 'signup' | 'recovery' | 'email' | 'invite' | 'magiclink' | 'sms';
+}

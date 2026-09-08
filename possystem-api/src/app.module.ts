@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { AppController } from './app.controller';
@@ -20,6 +20,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module';
 import { BillsModule } from './bills/bills.module';
 import { MailModule } from './mail/mail.module';
 import { WorkflowsModule } from './workflows/workflows.module';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
   imports: [
@@ -46,4 +47,9 @@ import { WorkflowsModule } from './workflows/workflows.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+  }
+}
+

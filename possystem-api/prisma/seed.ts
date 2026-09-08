@@ -87,6 +87,76 @@ async function main() {
     }
   }
 
+  console.log('Seeding permissions for all resources and actions...');
+  const resources = [
+    'orgs',
+    'org',
+    'users',
+    'user',
+    'roles',
+    'role',
+    'permissions',
+    'permission',
+    'products',
+    'product',
+    'categories',
+    'category',
+    'brands',
+    'brand',
+    'discounts',
+    'discount',
+    'inventory',
+    'locations',
+    'location',
+    'suppliers',
+    'supplier',
+    'purchase_orders',
+    'purchase_order',
+    'customers',
+    'customer',
+    'loyalty',
+    'bills',
+    'bill',
+    'payments',
+    'payment',
+    'all',
+    '*',
+  ];
+
+  const actions = ['create', 'read', 'update', 'delete', 'manage', '*'];
+
+  const permData: { resource: string; action: string; description: string }[] = [];
+  for (const resource of resources) {
+    for (const action of actions) {
+      permData.push({
+        resource,
+        action,
+        description: `Permission to ${action} ${resource}`,
+      });
+    }
+  }
+
+  await prisma.permission.createMany({
+    data: permData,
+    skipDuplicates: true,
+  });
+
+  const allPermissions = await prisma.permission.findMany();
+  const adminRole = await prisma.role.findFirst({ where: { name: 'Admin' } });
+
+  if (adminRole) {
+    const rolePermData = allPermissions.map((p) => ({
+      role_id: adminRole.id,
+      permission_id: p.id,
+    }));
+
+    await prisma.rolePermission.createMany({
+      data: rolePermData,
+      skipDuplicates: true,
+    });
+    console.log(`Assigned all ${allPermissions.length} permissions to Admin role.`);
+  }
+
   console.log('Seeding completed successfully.');
 }
 

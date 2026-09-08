@@ -4,12 +4,12 @@ import { CreateOrgDto } from './dto/create-org.dto';
 import { UpdateOrgDto } from './dto/update-org.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { UpdateOrgCommand } from './commands/update-org.command';
-import { DeleteOrgCommand } from './commands/delete-org.command';
 import { GetOrgsQuery } from './queries/get-orgs.query';
 import { GetOrgQuery } from './queries/get-org.query';
 import { GetBusinessCategoriesQuery } from './queries/get-business-categories.query';
 import { CreateOrgCommand } from '../workflows/commands/create-org.command';
 import { InviteMemberCommand } from '../workflows/commands/invite-member.command';
+import { DeleteOrgCommand } from '../workflows/commands/delete-org.command';
 
 @Injectable()
 export class OrgsService {
