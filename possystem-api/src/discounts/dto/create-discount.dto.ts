@@ -11,6 +11,10 @@ import {
 } from 'class-validator';
 
 export class CreateDiscountDto {
+  @IsUUID()
+  @IsNotEmpty()
+  org_id: string;
+
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -61,4 +65,3 @@ export class CreateDiscountDto {
   @IsOptional()
   category_ids?: string[];
 }
-

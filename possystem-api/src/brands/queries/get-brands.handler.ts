@@ -6,8 +6,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class GetBrandsHandler implements IQueryHandler<GetBrandsQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute() {
+  async execute(query: GetBrandsQuery) {
+    const { orgId } = query;
     return this.prisma.brand.findMany({
+      where: orgId ? { org_id: orgId } : undefined,
       include: {
         _count: {
           select: { products: true },

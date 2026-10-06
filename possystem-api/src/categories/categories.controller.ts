@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
@@ -24,8 +25,8 @@ export class CategoriesController {
   }
 
   @Get()
-  findAll() {
-    return this.categoriesService.findAll();
+  findAll(@Query('orgId') orgId?: string) {
+    return this.categoriesService.findAll(orgId);
   }
 
   @Get(':id')
@@ -46,4 +47,3 @@ export class CategoriesController {
     return this.categoriesService.remove(id);
   }
 }
-

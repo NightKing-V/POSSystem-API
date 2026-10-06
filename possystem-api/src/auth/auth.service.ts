@@ -1,10 +1,11 @@
-﻿import {
+import {
   Injectable,
   BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
+import { PrismaService } from '../prisma/prisma.service';
 import { LoginCommand } from './commands/login.command';
 import { ForgotPasswordCommand } from './commands/forgot-password.command';
 import { ResetPasswordCommand } from './commands/reset-password.command';
@@ -15,7 +16,10 @@ export class AuthService {
   private supabase: SupabaseClient;
   private readonly logger = new Logger(AuthService.name);
 
-  constructor(private readonly commandBus: CommandBus) {
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly prisma: PrismaService,
+  ) {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
     this.logger.debug(`Initializing Supabase client with URL: ${supabaseUrl}`);
@@ -50,10 +54,14 @@ export class AuthService {
       }
 
       // 2. Trigger the signup confirmation OTP email
-      this.logger.debug(`Triggering signup confirmation email for ${email}...`);
+      const redirectTo = process.env.SUPABASE_REDIRECT_URL?.trim() || undefined;
+      this.logger.debug(
+        `Triggering signup confirmation email for ${email}${redirectTo ? ` (redirectTo: ${redirectTo})` : ''}...`,
+      );
       const { error: resendError } = await this.supabase.auth.resend({
         type: 'signup',
         email,
+        options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
       });
       if (resendError) {
         this.logger.warn(`Failed to send confirmation email for ${email}: ${resendError.message}`);
@@ -92,10 +100,8 @@ export class AuthService {
     return this.commandBus.execute(new LoginCommand(email, password));
   }
 
-  async forgotPassword(email: string, redirectTo?: string) {
-    return this.commandBus.execute(
-      new ForgotPasswordCommand(email, redirectTo),
-    );
+  async forgotPassword(email: string) {
+    return this.commandBus.execute(new ForgotPasswordCommand(email));
   }
 
   async resetPassword(accessToken: string, newPassword: string) {
@@ -104,9 +110,99 @@ export class AuthService {
     );
   }
 
+  private getOtpSentAt(user: User | null, otpType: string): string | undefined {
+    if (!user) return undefined;
+    switch (otpType) {
+      case 'recovery':
+        return user.recovery_sent_at;
+      case 'email_change':
+        return user.email_change_sent_at;
+      case 'invite':
+        return user.invited_at || user.confirmation_sent_at;
+      case 'signup':
+      case 'email':
+      case 'magiclink':
+      default:
+        return user.confirmation_sent_at;
+    }
+  }
+
+  private isOtpExpiredForUser(
+    user: User | null,
+    otpType: string,
+    otpExpiryMs: number,
+  ): boolean {
+    if (!user) return false;
+
+    const sentAt = this.getOtpSentAt(user, otpType);
+    if (!sentAt) {
+      return true;
+    }
+
+    const sentAtMs = new Date(sentAt).getTime();
+    if (Number.isNaN(sentAtMs)) {
+      return false;
+    }
+
+    // Check if the OTP age exceeds the configured expiration window
+    if (Date.now() - sentAtMs > otpExpiryMs) {
+      return true;
+    }
+
+    // For signup OTPs, if the email was already confirmed at or after confirmation_sent_at,
+    // the signup OTP has already been consumed/expired
+    if (otpType === 'signup' && user.email_confirmed_at) {
+      const confirmedAtMs = new Date(user.email_confirmed_at).getTime();
+      if (!Number.isNaN(confirmedAtMs) && confirmedAtMs >= sentAtMs) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   async verifyRegistrationOtp(dto: { email: string; token: string; type?: any }) {
     const otpType = dto.type || 'signup';
-    this.logger.debug(`Verifying OTP for email: ${dto.email} with type: ${otpType}`);
+    const otpExpirySeconds =
+      Number(process.env.SUPABASE_OTP_EXPIRY_SECONDS) || 3600;
+    const otpExpiryMs = otpExpirySeconds * 1000;
+
+    this.logger.debug(
+      `Verifying OTP for email: ${dto.email} with type: ${otpType}`,
+    );
+
+    // 1. Resolve Supabase user metadata to check OTP expiration timestamp
+    let supabaseUser: User | null = null;
+    try {
+      const localUser = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+      if (localUser) {
+        const { data: adminData } =
+          await this.supabase.auth.admin.getUserById(localUser.id);
+        supabaseUser = adminData?.user ?? null;
+      }
+    } catch (lookupErr) {
+      this.logger.warn(
+        `Could not pre-fetch user OTP metadata for ${dto.email}: ${lookupErr.message}`,
+      );
+    }
+
+    // 2. If OTP is already expired based on sent_at timestamp, reject immediately with OTP_EXPIRED
+    if (
+      supabaseUser &&
+      this.isOtpExpiredForUser(supabaseUser, otpType, otpExpiryMs)
+    ) {
+      this.logger.warn(`OTP expired for ${dto.email} (type: ${otpType})`);
+      throw new BadRequestException({
+        statusCode: 400,
+        code: 'OTP_EXPIRED',
+        error: 'OTP Expired',
+        message: 'OTP has expired. Please request a new code.',
+      });
+    }
+
+    // 3. Verify the OTP token against Supabase Auth
     const { data, error } = await this.supabase.auth.verifyOtp({
       email: dto.email,
       token: dto.token,
@@ -114,8 +210,31 @@ export class AuthService {
     });
 
     if (error) {
-      this.logger.error(`OTP verification failed for ${dto.email}: ${error.message}`);
-      throw new BadRequestException(error.message);
+      this.logger.error(
+        `OTP verification failed for ${dto.email}: ${error.message}`,
+      );
+
+      // Re-check expiration in case it expired right at the boundary;
+      // otherwise, since the OTP is still within its validity window, the code entered is invalid.
+      const expired =
+        supabaseUser &&
+        this.isOtpExpiredForUser(supabaseUser, otpType, otpExpiryMs);
+
+      if (expired) {
+        throw new BadRequestException({
+          statusCode: 400,
+          code: 'OTP_EXPIRED',
+          error: 'OTP Expired',
+          message: 'OTP has expired. Please request a new code.',
+        });
+      }
+
+      throw new BadRequestException({
+        statusCode: 400,
+        code: 'OTP_INVALID',
+        error: 'Invalid OTP',
+        message: 'Invalid OTP code. Please check the code and try again.',
+      });
     }
 
     this.logger.log(`OTP successfully verified for ${dto.email}`);

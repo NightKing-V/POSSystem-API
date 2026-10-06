@@ -20,6 +20,7 @@ export class UpdateCustomerHandler implements ICommandHandler<UpdateCustomerComm
     if (updateCustomerDto.phone) {
       const existing = await this.prisma.customer.findFirst({
         where: {
+          org_id: customer.org_id,
           phone: updateCustomerDto.phone,
           id: { not: id },
           deleted_at: null,
@@ -27,7 +28,7 @@ export class UpdateCustomerHandler implements ICommandHandler<UpdateCustomerComm
       });
       if (existing) {
         throw new ConflictException(
-          `Customer with phone "${updateCustomerDto.phone}" already exists`,
+          `Customer with phone "${updateCustomerDto.phone}" already exists in this organization`,
         );
       }
     }

@@ -21,8 +21,8 @@ export class CategoriesService {
     );
   }
 
-  async findAll() {
-    return this.queryBus.execute(new GetCategoriesQuery());
+  async findAll(orgId?: string) {
+    return this.queryBus.execute(new GetCategoriesQuery(orgId));
   }
 
   async findOne(id: string) {

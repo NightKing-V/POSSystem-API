@@ -7,10 +7,15 @@ export class ValidateCouponHandler implements IQueryHandler<ValidateCouponQuery>
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(query: ValidateCouponQuery) {
-    const { code, items } = query;
+    const { orgId, code, items } = query;
 
     const discount = await this.prisma.discount.findUnique({
-      where: { coup_code: code },
+      where: {
+        org_id_coup_code: {
+          org_id: orgId,
+          coup_code: code,
+        },
+      },
       include: {
         product_discounts: true,
         category_discounts: true,

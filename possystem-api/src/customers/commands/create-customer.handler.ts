@@ -20,11 +20,15 @@ export class CreateCustomerHandler implements ICommandHandler<CreateCustomerComm
     }
 
     const existing = await this.prisma.customer.findFirst({
-      where: { phone: createCustomerDto.phone, deleted_at: null },
+      where: {
+        org_id: createCustomerDto.org_id,
+        phone: createCustomerDto.phone,
+        deleted_at: null,
+      },
     });
     if (existing) {
       throw new ConflictException(
-        `Customer with phone "${createCustomerDto.phone}" already exists`,
+        `Customer with phone "${createCustomerDto.phone}" already exists in this organization`,
       );
     }
 

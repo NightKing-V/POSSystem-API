@@ -105,6 +105,8 @@ model User {
 
   // Relations
   owned_orgs             Org[]
+  system_roles           UserSystemRole[]            @relation("UserSystemRoles")
+  assigned_system_roles  UserSystemRole[]            @relation("SystemRoleAssigner")
   roles                  UserRole[]                  @relation("UserRoles")
   assigned_roles         UserRole[]                  @relation("RoleAssigner")
   locations              UserLocation[]              @relation("UserLocations")
@@ -118,31 +120,78 @@ model User {
   bill_payments          BillPayment[]
 }
 
-model Role {
-  id                 String           @id @default(uuid())
+model SystemRole {
+  id                 String                 @id @default(uuid())
+  key                String                 @unique
   name               String
   description        String?
-  is_system          Boolean          @default(false)
-  is_location_scoped Boolean          @default(false)
-  permissions        RolePermission[]
-  users              UserRole[]
+  is_org_template    Boolean                @default(true)
+  is_org_entrypoint  Boolean                @default(false)
+  is_location_scoped Boolean                @default(false)
+  permissions        SystemRolePermission[]
+  users              UserSystemRole[]
+  org_roles          OrgRole[]
+}
+
+model OrgRole {
+  id                 String              @id @default(uuid())
+  org_id             String
+  system_role_id     String?
+  name               String
+  description        String?
+  is_builtin         Boolean             @default(false)
+  is_entrypoint      Boolean             @default(false)
+  is_location_scoped Boolean             @default(false)
+
+  org         Org                 @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  system_role SystemRole?         @relation(fields: [system_role_id], references: [id])
+  permissions OrgRolePermission[]
+  users       UserRole[]
+
+  @@unique([org_id, name])
+  @@index([org_id])
 }
 
 model Permission {
-  id          String           @id @default(uuid())
-  resource    String
-  action      String
-  description String?
-  roles       RolePermission[]
+  id           String                 @id @default(uuid())
+  resource     String
+  action       String
+  description  String?
+  system_roles SystemRolePermission[]
+  org_roles    OrgRolePermission[]
+
+  @@unique([resource, action])
 }
 
-model RolePermission {
-  role_id       String
-  permission_id String
-  role          Role       @relation(fields: [role_id], references: [id])
-  permission    Permission @relation(fields: [permission_id], references: [id])
+model SystemRolePermission {
+  system_role_id String
+  permission_id  String
+  system_role    SystemRole @relation(fields: [system_role_id], references: [id], onDelete: Cascade)
+  permission     Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
 
-  @@id([role_id, permission_id])
+  @@id([system_role_id, permission_id])
+}
+
+model OrgRolePermission {
+  org_role_id   String
+  permission_id String
+  org_role      OrgRole    @relation(fields: [org_role_id], references: [id], onDelete: Cascade)
+  permission    Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@id([org_role_id, permission_id])
+}
+
+model UserSystemRole {
+  user_id        String
+  system_role_id String
+  assigned_at    DateTime   @default(now())
+  assigned_by    String?
+
+  user        User       @relation("UserSystemRoles", fields: [user_id], references: [id], onDelete: Cascade)
+  system_role SystemRole @relation(fields: [system_role_id], references: [id], onDelete: Cascade)
+  assigner    User?      @relation("SystemRoleAssigner", fields: [assigned_by], references: [id])
+
+  @@id([user_id, system_role_id])
 }
 
 model UserRole {
@@ -152,10 +201,10 @@ model UserRole {
   assigned_at DateTime @default(now())
   assigned_by String?
 
-  user     User  @relation("UserRoles", fields: [user_id], references: [id])
-  role     Role  @relation(fields: [role_id], references: [id])
-  org      Org   @relation(fields: [org_id], references: [id])
-  assigner User? @relation("RoleAssigner", fields: [assigned_by], references: [id])
+  user     User    @relation("UserRoles", fields: [user_id], references: [id])
+  role     OrgRole @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  org      Org     @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  assigner User?   @relation("RoleAssigner", fields: [assigned_by], references: [id])
 
   @@id([user_id, role_id, org_id])
 }
@@ -187,7 +236,12 @@ model Org {
   owner             User             @relation(fields: [owner_id], references: [id])
   business_category BusinessCategory @relation(fields: [businesscategory_id], references: [id])
 
+  roles             OrgRole[]
   user_roles        UserRole[]
+  categories        ProductCategory[]
+  brands            Brand[]
+  products          Product[]
+  discounts         Discount[]
   locations         InventoryLocation[]
   suppliers         Supplier[]
   purchase_orders   PurchaseOrder[]
@@ -202,9 +256,26 @@ model Org {
 }
 
 model BusinessCategory {
-  id   String @id @default(uuid())
-  type String
-  orgs Org[]
+  id                 String                    @id @default(uuid())
+  type               String                    @unique
+  orgs               Org[]
+  category_templates ProductCategoryTemplate[]
+}
+
+model ProductCategoryTemplate {
+  id                  String  @id @default(uuid())
+  businesscategory_id String
+  parent_id           String?
+  name                String
+  level               Int     @default(0)
+
+  business_category BusinessCategory          @relation(fields: [businesscategory_id], references: [id], onDelete: Cascade)
+  parent            ProductCategoryTemplate?  @relation("SubCategoryTemplates", fields: [parent_id], references: [id])
+  children          ProductCategoryTemplate[] @relation("SubCategoryTemplates")
+  org_categories    ProductCategory[]
+
+  @@unique([businesscategory_id, parent_id, name])
+  @@index([businesscategory_id])
 }
 
 // -----------------------------------------------------------------------------
@@ -212,34 +283,49 @@ model BusinessCategory {
 // -----------------------------------------------------------------------------
 
 model ProductCategory {
-  id        String  @id @default(uuid())
-  parent_id String?
-  name      String
-  level     Int     @default(0)
+  id          String  @id @default(uuid())
+  org_id      String
+  template_id String?
+  parent_id   String?
+  name        String
+  level       Int     @default(0)
 
-  parent    ProductCategory?   @relation("SubCategories", fields: [parent_id], references: [id])
-  children  ProductCategory[]  @relation("SubCategories")
+  org       Org                      @relation(fields: [org_id], references: [id])
+  template  ProductCategoryTemplate? @relation(fields: [template_id], references: [id])
+  parent    ProductCategory?         @relation("SubCategories", fields: [parent_id], references: [id])
+  children  ProductCategory[]        @relation("SubCategories")
   products  Product[]
   discounts CategoryDiscount[]
+
+  @@unique([org_id, parent_id, name])
+  @@index([org_id])
 }
 
 model Brand {
   id       String    @id @default(uuid())
+  org_id   String
   name     String
+
+  org      Org       @relation(fields: [org_id], references: [id])
   products Product[]
+
+  @@unique([org_id, name])
+  @@index([org_id])
 }
 
 model Product {
   id            String   @id @default(uuid())
+  org_id        String
   subcategoryid String
   brandid       String?
   supplier_id   String?
-  barcode       String?  @unique
-  SKU           String   @unique
+  barcode       String?
+  SKU           String
   name          String
   createdat     DateTime @default(now())
   modifiedat    DateTime @updatedAt
 
+  org      Org             @relation(fields: [org_id], references: [id])
   category ProductCategory @relation(fields: [subcategoryid], references: [id])
   brand    Brand?          @relation(fields: [brandid], references: [id])
   supplier Supplier?       @relation(fields: [supplier_id], references: [id])
@@ -249,6 +335,10 @@ model Product {
   stock_batches StockBatch[]
   po_items      PurchaseOrderItem[]
   bill_items    BillItem[]
+
+  @@unique([org_id, SKU])
+  @@unique([org_id, barcode])
+  @@index([org_id])
 }
 
 model ProductPrice {
@@ -270,6 +360,7 @@ model ProductPrice {
 
 model Discount {
   id           String    @id @default(uuid())
+  org_id       String
   name         String
   type         String // E.g., PERCENTAGE, FIXED
   value        Decimal   @db.Decimal(10, 2)
@@ -277,13 +368,17 @@ model Discount {
   valid_to     DateTime?
   min_qty      Int?
   min_val      Decimal?  @db.Decimal(10, 2)
-  coup_code    String?   @unique
+  coup_code    String?
   is_active    Boolean   @default(true)
   is_stackable Boolean   @default(false)
   scope        String // E.g., PRODUCT, CATEGORY, ORDER
 
+  org                Org                @relation(fields: [org_id], references: [id])
   product_discounts  ProductDiscount[]
   category_discounts CategoryDiscount[]
+
+  @@unique([org_id, coup_code])
+  @@index([org_id])
 }
 
 model ProductDiscount {
@@ -356,7 +451,7 @@ model PurchaseOrder {
   org_id                String
   supplier_id           String
   receiving_location_id String
-  po_number             String       @unique
+  po_number             String
   status                POStatus     @default(DRAFT)
   payment_terms         PaymentTerms
   due_date              DateTime?
@@ -372,6 +467,8 @@ model PurchaseOrder {
   creator    User                        @relation(fields: [created_by], references: [id])
   items      PurchaseOrderItem[]
   credit_txs SupplierCreditTransaction[]
+
+  @@unique([org_id, po_number])
 }
 
 model PurchaseOrderItem {
@@ -496,7 +593,7 @@ model Customer {
   id                String    @id @default(uuid())
   org_id            String
   full_name         String
-  phone             String    @unique
+  phone             String
   email             String?
   address           String?
   notes             String?
@@ -517,6 +614,8 @@ model Customer {
   credit_txs     CustomerCreditTransaction[]
   loyalty_txs    CustomerLoyaltyTransaction[]
   bills          Bill[]
+
+  @@unique([org_id, phone])
 }
 
 model CustomerCreditAccount {
@@ -591,7 +690,7 @@ model Bill {
   location_id    String
   customer_id    String?
   cashier_id     String
-  bill_number    String     @unique
+  bill_number    String
   status         BillStatus @default(COMPLETED)
   subtotal       Decimal    @db.Decimal(12, 2)
   discount_total Decimal    @db.Decimal(12, 2)
@@ -612,6 +711,8 @@ model Bill {
   payments    BillPayment[]
   credit_txs  CustomerCreditTransaction[]
   loyalty_txs CustomerLoyaltyTransaction[]
+
+  @@unique([org_id, bill_number])
 }
 
 model BillItem {

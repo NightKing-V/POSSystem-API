@@ -23,8 +23,8 @@ export class DiscountsService {
     );
   }
 
-  async findAll() {
-    return this.queryBus.execute(new GetDiscountsQuery());
+  async findAll(orgId?: string) {
+    return this.queryBus.execute(new GetDiscountsQuery(orgId));
   }
 
   async findOne(id: string) {
@@ -41,7 +41,11 @@ export class DiscountsService {
     return this.commandBus.execute(new DeleteDiscountCommand(id));
   }
 
-  async validateCoupon(code: string, items?: CouponItemDto[]) {
-    return this.queryBus.execute(new ValidateCouponQuery(code, items));
+  async validateCoupon(
+    orgId: string,
+    code: string,
+    items?: CouponItemDto[],
+  ) {
+    return this.queryBus.execute(new ValidateCouponQuery(orgId, code, items));
   }
 }

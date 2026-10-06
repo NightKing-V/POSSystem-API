@@ -1,5 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { UpdateRoleCommand } from './update-role.command';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -9,26 +13,47 @@ export class UpdateRoleHandler implements ICommandHandler<UpdateRoleCommand> {
 
   async execute(command: UpdateRoleCommand) {
     const { id, updateRoleDto } = command;
-    const role = await this.prisma.role.findUnique({ where: { id } });
+    const role = await this.prisma.orgRole.findUnique({ where: { id } });
     if (!role) {
       throw new NotFoundException(`Role with ID "${id}" not found`);
     }
 
-    const { permissionIds, ...roleData } = updateRoleDto;
+    const { permissionIds, org_id: _ignoredOrgId, ...roleData } = updateRoleDto;
 
-    await this.prisma.role.update({
+    if (roleData.name && roleData.name !== role.name) {
+      const existing = await this.prisma.orgRole.findUnique({
+        where: {
+          org_id_name: {
+            org_id: role.org_id,
+            name: roleData.name,
+          },
+        },
+      });
+      if (existing) {
+        throw new ConflictException(
+          `Role "${roleData.name}" already exists in this organization`,
+        );
+      }
+    }
+
+    await this.prisma.orgRole.update({
       where: { id },
       data: {
         name: roleData.name,
         description: roleData.description,
-        is_system: roleData.is_system,
         is_location_scoped: roleData.is_location_scoped,
       },
     });
 
     if (permissionIds !== undefined) {
-      await this.prisma.rolePermission.deleteMany({
-        where: { role_id: id },
+      if (role.is_entrypoint && permissionIds.length === 0) {
+        throw new BadRequestException(
+          'Cannot remove all permissions from the organization entrypoint role',
+        );
+      }
+
+      await this.prisma.orgRolePermission.deleteMany({
+        where: { org_role_id: id },
       });
 
       for (const permissionId of permissionIds) {
@@ -42,16 +67,16 @@ export class UpdateRoleHandler implements ICommandHandler<UpdateRoleCommand> {
           );
         }
 
-        await this.prisma.rolePermission.create({
+        await this.prisma.orgRolePermission.create({
           data: {
-            role_id: id,
+            org_role_id: id,
             permission_id: permissionId,
           },
         });
       }
     }
 
-    return this.prisma.role.findUnique({
+    return this.prisma.orgRole.findUnique({
       where: { id },
       include: {
         permissions: {

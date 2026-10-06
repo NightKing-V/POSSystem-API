@@ -85,10 +85,40 @@ export class DeleteOrgHandler implements ICommandHandler<DeleteOrgCommand> {
       await this.commandBus.execute(new DeleteInventoryCommand(location.id, true));
     }
 
-    // 6. Delete remaining Org-scoped configurations, user roles, and the Org itself
+    // 6. Delete remaining Org-scoped catalog, discounts, configurations, roles, and the Org itself
     await this.prisma.$transaction(async (tx) => {
+      // 6a. Discounts
+      await tx.productDiscount.deleteMany({
+        where: { discount: { org_id: id } },
+      });
+      await tx.categoryDiscount.deleteMany({
+        where: { discount: { org_id: id } },
+      });
+      await tx.discount.deleteMany({ where: { org_id: id } });
+
+      // 6b. Products & Prices
+      await tx.productPrice.deleteMany({
+        where: { product: { org_id: id } },
+      });
+      await tx.product.deleteMany({ where: { org_id: id } });
+
+      // 6c. Brands
+      await tx.brand.deleteMany({ where: { org_id: id } });
+
+      // 6d. Product Categories (unlink parent_id first to satisfy self-relation FK)
+      await tx.productCategory.updateMany({
+        where: { org_id: id },
+        data: { parent_id: null },
+      });
+      await tx.productCategory.deleteMany({ where: { org_id: id } });
+
+      // 6e. Loyalty config, UserRoles, OrgRoles, and Org
       await tx.loyaltyProgramConfig.deleteMany({ where: { org_id: id } });
       await tx.userRole.deleteMany({ where: { org_id: id } });
+      await tx.orgRolePermission.deleteMany({
+        where: { org_role: { org_id: id } },
+      });
+      await tx.orgRole.deleteMany({ where: { org_id: id } });
       await tx.org.delete({ where: { id } });
     });
 

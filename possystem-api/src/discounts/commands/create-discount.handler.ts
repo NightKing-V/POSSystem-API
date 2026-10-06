@@ -1,5 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateDiscountCommand } from './create-discount.command';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -9,14 +13,63 @@ export class CreateDiscountHandler implements ICommandHandler<CreateDiscountComm
 
   async execute(command: CreateDiscountCommand) {
     const { createDiscountDto } = command;
+    const { org_id } = createDiscountDto;
+
+    const org = await this.prisma.org.findUnique({
+      where: { id: org_id },
+    });
+    if (!org) {
+      throw new NotFoundException(`Organization with ID "${org_id}" not found`);
+    }
 
     if (createDiscountDto.coup_code) {
       const existing = await this.prisma.discount.findUnique({
-        where: { coup_code: createDiscountDto.coup_code },
+        where: {
+          org_id_coup_code: {
+            org_id,
+            coup_code: createDiscountDto.coup_code,
+          },
+        },
       });
       if (existing) {
         throw new ConflictException(
-          `Discount coupon code "${createDiscountDto.coup_code}" already exists`,
+          `Discount coupon code "${createDiscountDto.coup_code}" already exists in this organization`,
+        );
+      }
+    }
+
+    if (
+      createDiscountDto.scope === 'PRODUCT' &&
+      createDiscountDto.product_ids &&
+      createDiscountDto.product_ids.length > 0
+    ) {
+      const validProducts = await this.prisma.product.count({
+        where: {
+          id: { in: createDiscountDto.product_ids },
+          org_id,
+        },
+      });
+      if (validProducts !== createDiscountDto.product_ids.length) {
+        throw new BadRequestException(
+          'One or more specified product_ids do not exist or do not belong to this organization',
+        );
+      }
+    }
+
+    if (
+      createDiscountDto.scope === 'CATEGORY' &&
+      createDiscountDto.category_ids &&
+      createDiscountDto.category_ids.length > 0
+    ) {
+      const validCategories = await this.prisma.productCategory.count({
+        where: {
+          id: { in: createDiscountDto.category_ids },
+          org_id,
+        },
+      });
+      if (validCategories !== createDiscountDto.category_ids.length) {
+        throw new BadRequestException(
+          'One or more specified category_ids do not exist or do not belong to this organization',
         );
       }
     }
@@ -24,6 +77,7 @@ export class CreateDiscountHandler implements ICommandHandler<CreateDiscountComm
     return this.prisma.$transaction(async (tx) => {
       const discount = await tx.discount.create({
         data: {
+          org_id,
           name: createDiscountDto.name,
           type: createDiscountDto.type,
           value: createDiscountDto.value,

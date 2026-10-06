@@ -6,8 +6,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class GetDiscountsHandler implements IQueryHandler<GetDiscountsQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute() {
+  async execute(query: GetDiscountsQuery) {
+    const { orgId } = query;
     return this.prisma.discount.findMany({
+      where: orgId ? { org_id: orgId } : undefined,
       include: {
         product_discounts: {
           include: { product: true },

@@ -59,7 +59,11 @@ export class CreateBillHandler implements ICommandHandler<CreateBillCommand> {
           where: { id: item.product_id },
           include: { prices: true, category: true },
         });
-        if (!product) throw new NotFoundException(`Product with ID "${item.product_id}" not found`);
+        if (!product || product.org_id !== org_id) {
+          throw new NotFoundException(
+            `Product with ID "${item.product_id}" not found in organization "${org_id}"`,
+          );
+        }
 
         // Resolve Price
         let priceRecord: any = null;
@@ -95,6 +99,7 @@ export class CreateBillHandler implements ICommandHandler<CreateBillCommand> {
           .filter((d) => {
             const now = new Date();
             return (
+              d.org_id === org_id &&
               d.is_active &&
               (!d.valid_from || now >= new Date(d.valid_from)) &&
               (!d.valid_to || now <= new Date(d.valid_to))
@@ -148,7 +153,12 @@ export class CreateBillHandler implements ICommandHandler<CreateBillCommand> {
       let orderCouponDiscount = 0;
       if (coupon_code) {
         const coupon = await tx.discount.findUnique({
-          where: { coup_code: coupon_code },
+          where: {
+            org_id_coup_code: {
+              org_id,
+              coup_code: coupon_code,
+            },
+          },
         });
 
         if (!coupon || !coupon.is_active) {
@@ -456,7 +466,7 @@ export class CreateBillHandler implements ICommandHandler<CreateBillCommand> {
       }
 
       // 9. Generate unique bill number
-      const billNumber = await this.generateUniqueBillNumber(tx);
+      const billNumber = await this.generateUniqueBillNumber(tx, org_id);
 
       const taxNotes =
         appliedTaxesList.length > 0 ? `Applied Taxes: ${appliedTaxesList.join(', ')}.` : '';
@@ -528,7 +538,7 @@ export class CreateBillHandler implements ICommandHandler<CreateBillCommand> {
     }, { timeout: 30000, maxWait: 10000 });
   }
 
-  private async generateUniqueBillNumber(tx: any): Promise<string> {
+  private async generateUniqueBillNumber(tx: any, orgId: string): Promise<string> {
     const now = new Date();
     const dateStr =
       now.getFullYear().toString() +
@@ -547,7 +557,12 @@ export class CreateBillHandler implements ICommandHandler<CreateBillCommand> {
       billNo = `BILL-${dateStr}-${rand}`;
 
       const existing = await tx.bill.findUnique({
-        where: { bill_number: billNo },
+        where: {
+          org_id_bill_number: {
+            org_id: orgId,
+            bill_number: billNo,
+          },
+        },
       });
       if (!existing) {
         isUnique = true;

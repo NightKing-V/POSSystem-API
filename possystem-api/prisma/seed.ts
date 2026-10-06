@@ -2,6 +2,12 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
+import { buildPermissionsSeedData } from './seeds/permissions.seed';
+import { SYSTEM_ROLES_SEED } from './seeds/system-roles.seed';
+import {
+  BUSINESS_CATEGORIES_SEED,
+  CategoryTemplateNode,
+} from './seeds/business-categories.seed';
 
 dotenv.config();
 
@@ -11,130 +17,72 @@ const pool = new Pool({
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-async function main() {
-  console.log('Seeding business categories...');
-  const categories = [
-    { type: 'RETAIL' },
-    { type: 'RESTAURANT' },
-    { type: 'SUPERMARKET' },
-    { type: 'PHARMACY' },
-    { type: 'ELECTRONICS' },
-    { type: 'APPAREL' },
-    { type: 'SERVICES' },
-  ];
-
-  for (const cat of categories) {
-    const existing = await prisma.businessCategory.findFirst({
-      where: { type: cat.type },
+async function seedCategoryTemplatesRecursive(
+  businessCategoryId: string,
+  nodes: CategoryTemplateNode[],
+  parentId: string | null = null,
+  level = 0,
+) {
+  for (const node of nodes) {
+    let template = await prisma.productCategoryTemplate.findFirst({
+      where: {
+        businesscategory_id: businessCategoryId,
+        parent_id: parentId,
+        name: node.name,
+      },
     });
-    if (!existing) {
-      await prisma.businessCategory.create({
-        data: { type: cat.type },
-      });
-      console.log(`Created business category: ${cat.type}`);
-    } else {
-      console.log(`Business category already exists: ${cat.type}`);
-    }
-  }
 
-  console.log('Seeding default roles...');
-  const roles = [
-    {
-      name: 'Admin',
-      description: 'System-wide Administrator',
-      is_system: true,
-      is_location_scoped: false,
-    },
-    {
-      name: 'Owner',
-      description: 'Organization Owner',
-      is_system: true,
-      is_location_scoped: false,
-    },
-    {
-      name: 'Manager',
-      description: 'Location Manager',
-      is_system: true,
-      is_location_scoped: true,
-    },
-    {
-      name: 'Cashier',
-      description: 'Location Cashier',
-      is_system: true,
-      is_location_scoped: true,
-    },
-  ];
-
-  for (const role of roles) {
-    const existing = await prisma.role.findFirst({
-      where: { name: role.name },
-    });
-    if (!existing) {
-      await prisma.role.create({
-        data: role,
-      });
-      console.log(`Created role: ${role.name}`);
-    } else {
-      await prisma.role.update({
-        where: { id: existing.id },
+    if (!template) {
+      template = await prisma.productCategoryTemplate.create({
         data: {
-          description: role.description,
-          is_system: role.is_system,
-          is_location_scoped: role.is_location_scoped,
+          businesscategory_id: businessCategoryId,
+          parent_id: parentId,
+          name: node.name,
+          level,
         },
       });
-      console.log(`Updated role: ${role.name}`);
-    }
-  }
-
-  console.log('Seeding permissions for all resources and actions...');
-  const resources = [
-    'orgs',
-    'org',
-    'users',
-    'user',
-    'roles',
-    'role',
-    'permissions',
-    'permission',
-    'products',
-    'product',
-    'categories',
-    'category',
-    'brands',
-    'brand',
-    'discounts',
-    'discount',
-    'inventory',
-    'locations',
-    'location',
-    'suppliers',
-    'supplier',
-    'purchase_orders',
-    'purchase_order',
-    'customers',
-    'customer',
-    'loyalty',
-    'bills',
-    'bill',
-    'payments',
-    'payment',
-    'all',
-    '*',
-  ];
-
-  const actions = ['create', 'read', 'update', 'delete', 'manage', '*'];
-
-  const permData: { resource: string; action: string; description: string }[] = [];
-  for (const resource of resources) {
-    for (const action of actions) {
-      permData.push({
-        resource,
-        action,
-        description: `Permission to ${action} ${resource}`,
+    } else if (template.level !== level) {
+      template = await prisma.productCategoryTemplate.update({
+        where: { id: template.id },
+        data: { level },
       });
     }
+
+    if (node.children && node.children.length > 0) {
+      await seedCategoryTemplatesRecursive(
+        businessCategoryId,
+        node.children,
+        template.id,
+        level + 1,
+      );
+    }
   }
+}
+
+async function main() {
+  console.log(
+    '1. Seeding business categories and default product category templates...',
+  );
+  for (const catBlueprint of BUSINESS_CATEGORIES_SEED) {
+    const businessCategory = await prisma.businessCategory.upsert({
+      where: { type: catBlueprint.type },
+      update: {},
+      create: { type: catBlueprint.type },
+    });
+
+    await seedCategoryTemplatesRecursive(
+      businessCategory.id,
+      catBlueprint.defaultCategories,
+      null,
+      0,
+    );
+    console.log(
+      `Synced business category & category templates: ${catBlueprint.type}`,
+    );
+  }
+
+  console.log('2. Seeding permissions for all resources and actions...');
+  const permData = buildPermissionsSeedData();
 
   await prisma.permission.createMany({
     data: permData,
@@ -142,19 +90,48 @@ async function main() {
   });
 
   const allPermissions = await prisma.permission.findMany();
-  const adminRole = await prisma.role.findFirst({ where: { name: 'Admin' } });
+  console.log(`Total permissions in database: ${allPermissions.length}`);
 
-  if (adminRole) {
-    const rolePermData = allPermissions.map((p) => ({
-      role_id: adminRole.id,
-      permission_id: p.id,
-    }));
-
-    await prisma.rolePermission.createMany({
-      data: rolePermData,
-      skipDuplicates: true,
+  console.log(
+    '3. Seeding system roles & organization role templates with permissions...',
+  );
+  for (const roleBlueprint of SYSTEM_ROLES_SEED) {
+    const systemRole = await prisma.systemRole.upsert({
+      where: { key: roleBlueprint.key },
+      update: {
+        name: roleBlueprint.name,
+        description: roleBlueprint.description,
+        is_org_template: roleBlueprint.is_org_template,
+        is_org_entrypoint: roleBlueprint.is_org_entrypoint,
+        is_location_scoped: roleBlueprint.is_location_scoped,
+      },
+      create: {
+        key: roleBlueprint.key,
+        name: roleBlueprint.name,
+        description: roleBlueprint.description,
+        is_org_template: roleBlueprint.is_org_template,
+        is_org_entrypoint: roleBlueprint.is_org_entrypoint,
+        is_location_scoped: roleBlueprint.is_location_scoped,
+      },
     });
-    console.log(`Assigned all ${allPermissions.length} permissions to Admin role.`);
+
+    const matchedPermissions = allPermissions.filter((p) =>
+      roleBlueprint.matchPermission(p),
+    );
+
+    if (matchedPermissions.length > 0) {
+      await prisma.systemRolePermission.createMany({
+        data: matchedPermissions.map((p) => ({
+          system_role_id: systemRole.id,
+          permission_id: p.id,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    console.log(
+      `Synced system role [${systemRole.key}] "${systemRole.name}" (template=${systemRole.is_org_template}, entrypoint=${systemRole.is_org_entrypoint}) with ${matchedPermissions.length} permissions.`,
+    );
   }
 
   console.log('Seeding completed successfully.');

@@ -19,8 +19,8 @@ export class UsersService {
     return this.commandBus.execute(new CreateUserCommand(createUserDto));
   }
 
-  async findAll() {
-    return this.queryBus.execute(new GetUsersQuery());
+  async findAll(orgId?: string) {
+    return this.queryBus.execute(new GetUsersQuery(orgId));
   }
 
   async findOne(id: string) {
