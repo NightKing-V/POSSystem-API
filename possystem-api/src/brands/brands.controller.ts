@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { BrandsService } from './brands.service';
@@ -24,8 +25,8 @@ export class BrandsController {
   }
 
   @Get()
-  findAll() {
-    return this.brandsService.findAll();
+  findAll(@Query('orgId') orgId?: string) {
+    return this.brandsService.findAll(orgId);
   }
 
   @Get(':id')
@@ -43,4 +44,3 @@ export class BrandsController {
     return this.brandsService.remove(id);
   }
 }
-

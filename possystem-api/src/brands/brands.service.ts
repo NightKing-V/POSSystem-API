@@ -19,8 +19,8 @@ export class BrandsService {
     return this.commandBus.execute(new CreateBrandCommand(createBrandDto));
   }
 
-  async findAll() {
-    return this.queryBus.execute(new GetBrandsQuery());
+  async findAll(orgId?: string) {
+    return this.queryBus.execute(new GetBrandsQuery(orgId));
   }
 
   async findOne(id: string) {

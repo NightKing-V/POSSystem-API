@@ -14,7 +14,11 @@ export class DeletePermissionHandler implements ICommandHandler<DeletePermission
       throw new NotFoundException(`Permission with ID "${id}" not found`);
     }
 
-    await this.prisma.rolePermission.deleteMany({
+    await this.prisma.systemRolePermission.deleteMany({
+      where: { permission_id: id },
+    });
+
+    await this.prisma.orgRolePermission.deleteMany({
       where: { permission_id: id },
     });
 

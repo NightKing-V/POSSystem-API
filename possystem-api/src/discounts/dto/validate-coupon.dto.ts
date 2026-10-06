@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CouponItemDto {
@@ -18,6 +25,10 @@ export class CouponItemDto {
 }
 
 export class ValidateCouponDto {
+  @IsUUID()
+  @IsNotEmpty()
+  org_id: string;
+
   @IsString()
   @IsNotEmpty()
   code: string;

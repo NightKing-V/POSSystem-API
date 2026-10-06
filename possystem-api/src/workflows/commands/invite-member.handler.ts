@@ -67,13 +67,19 @@ export class InviteMemberHandler implements ICommandHandler<InviteMemberCommand>
     // Assign roles in UserRole table
     if (inviteDto.roleIds && inviteDto.roleIds.length > 0) {
       for (const roleId of inviteDto.roleIds) {
-        // Verify role exists
-        const role = await this.prisma.role.findUnique({
+        // Verify organization role exists and belongs to this organization
+        const role = await this.prisma.orgRole.findUnique({
           where: { id: roleId },
         });
 
         if (!role) {
           throw new BadRequestException(`Role with ID "${roleId}" not found`);
+        }
+
+        if (role.org_id !== orgId) {
+          throw new BadRequestException(
+            `Role with ID "${roleId}" does not belong to organization "${orgId}"`,
+          );
         }
 
         // Check if role is already assigned

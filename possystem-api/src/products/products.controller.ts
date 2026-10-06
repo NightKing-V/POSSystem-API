@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
@@ -26,8 +27,8 @@ export class ProductsController {
   }
 
   @Get()
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Query('orgId') orgId?: string) {
+    return this.productsService.findAll(orgId);
   }
 
   @Get(':id')
@@ -75,4 +76,3 @@ export class ProductsController {
     return this.productsService.removePrice(priceId);
   }
 }
-

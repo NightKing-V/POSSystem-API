@@ -18,7 +18,7 @@ export class UpdateCategoryHandler implements ICommandHandler<UpdateCategoryComm
     }
 
     let level = category.level;
-    let parentId =
+    const parentId =
       updateCategoryDto.parent_id !== undefined
         ? updateCategoryDto.parent_id
         : category.parent_id;
@@ -40,6 +40,11 @@ export class UpdateCategoryHandler implements ICommandHandler<UpdateCategoryComm
       if (!parent) {
         throw new NotFoundException(
           `Parent category with ID "${updateCategoryDto.parent_id}" not found`,
+        );
+      }
+      if (parent.org_id !== category.org_id) {
+        throw new BadRequestException(
+          `Parent category with ID "${updateCategoryDto.parent_id}" does not belong to organization "${category.org_id}"`,
         );
       }
       level = parent.level + 1;

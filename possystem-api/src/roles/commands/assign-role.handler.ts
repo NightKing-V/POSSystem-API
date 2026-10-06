@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AssignRoleCommand } from './assign-role.command';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -20,9 +20,17 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
       throw new NotFoundException(`Organization with ID "${orgId}" not found`);
     }
 
-    const role = await this.prisma.role.findUnique({ where: { id: roleId } });
+    const role = await this.prisma.orgRole.findUnique({
+      where: { id: roleId },
+    });
     if (!role) {
       throw new NotFoundException(`Role with ID "${roleId}" not found`);
+    }
+
+    if (role.org_id !== orgId) {
+      throw new BadRequestException(
+        `Role with ID "${roleId}" does not belong to organization "${orgId}"`,
+      );
     }
 
     const existing = await this.prisma.userRole.findUnique({
@@ -31,6 +39,17 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
           user_id: userId,
           role_id: roleId,
           org_id: orgId,
+        },
+      },
+      include: {
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
         },
       },
     });
@@ -45,6 +64,17 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
         role_id: roleId,
         org_id: orgId,
         assigned_by: assignerId,
+      },
+      include: {
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
       },
     });
   }

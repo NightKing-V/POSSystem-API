@@ -6,7 +6,17 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class GetUsersHandler implements IQueryHandler<GetUsersQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute() {
-    return this.prisma.user.findMany();
+  async execute(query: GetUsersQuery) {
+    const { orgId } = query;
+    return this.prisma.user.findMany({
+      where: orgId
+        ? {
+            OR: [
+              { owned_orgs: { some: { id: orgId } } },
+              { roles: { some: { org_id: orgId } } },
+            ],
+          }
+        : undefined,
+    });
   }
 }

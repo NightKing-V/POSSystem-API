@@ -34,9 +34,21 @@ describe('OrgsService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
-    role: {
+    systemRole: {
+      findMany: jest.fn(),
+    },
+    orgRole: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
+      create: jest.fn(),
+    },
+    orgRolePermission: {
+      createMany: jest.fn(),
+    },
+    productCategoryTemplate: {
+      findMany: jest.fn(),
+    },
+    productCategory: {
       create: jest.fn(),
     },
     userRole: {
@@ -52,6 +64,7 @@ describe('OrgsService', () => {
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    $transaction: jest.fn((cb) => cb(mockPrisma)),
   };
 
   const mockAuthService = {
@@ -119,7 +132,7 @@ describe('OrgsService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should create organization and assign Owner role', async () => {
+    it('should create organization, provision OrgRoles from SystemRole templates, and assign entrypoint Owner role', async () => {
       prisma.businessCategory.findUnique.mockResolvedValue({
         id: 'cat-id',
         type: 'RETAIL',
@@ -128,13 +141,44 @@ describe('OrgsService', () => {
         id: 'owner-uuid',
         email: 'owner@example.com',
       });
+      prisma.systemRole.findMany.mockResolvedValue([
+        {
+          id: 'sys-owner-id',
+          key: 'OWNER',
+          name: 'Owner',
+          description: 'Organization Owner',
+          is_org_template: true,
+          is_org_entrypoint: true,
+          is_location_scoped: false,
+          permissions: [{ permission_id: 'perm-1' }],
+        },
+      ]);
       prisma.org.create.mockResolvedValue({
         id: 'org-id',
         owner_id: 'owner-uuid',
       });
-      prisma.role.findFirst.mockResolvedValue({
-        id: 'owner-role-id',
+      prisma.orgRole.create.mockResolvedValue({
+        id: 'owner-org-role-id',
+        org_id: 'org-id',
         name: 'Owner',
+        is_builtin: true,
+        is_entrypoint: true,
+      });
+      prisma.productCategoryTemplate.findMany.mockResolvedValue([
+        {
+          id: 'tpl-cat-1',
+          businesscategory_id: 'cat-id',
+          parent_id: null,
+          name: 'General Merchandise',
+          level: 0,
+        },
+      ]);
+      prisma.productCategory.create.mockResolvedValue({
+        id: 'org-cat-1',
+        org_id: 'org-id',
+        template_id: 'tpl-cat-1',
+        name: 'General Merchandise',
+        level: 0,
       });
 
       const result = await service.create(
@@ -143,14 +187,26 @@ describe('OrgsService', () => {
       );
 
       expect(prisma.org.create).toHaveBeenCalled();
+      expect(prisma.orgRole.create).toHaveBeenCalledWith({
+        data: {
+          org_id: 'org-id',
+          system_role_id: 'sys-owner-id',
+          name: 'Owner',
+          description: 'Organization Owner',
+          is_builtin: true,
+          is_entrypoint: true,
+          is_location_scoped: false,
+        },
+      });
       expect(prisma.userRole.create).toHaveBeenCalledWith({
         data: {
           user_id: 'owner-uuid',
-          role_id: 'owner-role-id',
+          role_id: 'owner-org-role-id',
           org_id: 'org-id',
           assigned_by: 'owner-uuid',
         },
       });
+      expect(prisma.productCategory.create).toHaveBeenCalled();
       expect(result).toEqual({ id: 'org-id', owner_id: 'owner-uuid' });
     });
   });
@@ -162,8 +218,9 @@ describe('OrgsService', () => {
         id: 'existing-user-id',
         email: 'existing@example.com',
       });
-      prisma.role.findUnique.mockResolvedValue({
+      prisma.orgRole.findUnique.mockResolvedValue({
         id: 'role-id',
+        org_id: 'org-id',
         name: 'Cashier',
       });
       prisma.userRole.findUnique.mockResolvedValue(null);
@@ -196,8 +253,9 @@ describe('OrgsService', () => {
         email: 'new@example.com',
         fullname: 'New User',
       });
-      prisma.role.findUnique.mockResolvedValue({
+      prisma.orgRole.findUnique.mockResolvedValue({
         id: 'role-id',
+        org_id: 'org-id',
         name: 'Cashier',
       });
       prisma.userRole.findUnique.mockResolvedValue(null);

@@ -9,6 +9,14 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
 
   async execute(command: CreateProductCommand) {
     const { createProductDto } = command;
+    const { org_id } = createProductDto;
+
+    const org = await this.prisma.org.findUnique({
+      where: { id: org_id },
+    });
+    if (!org) {
+      throw new NotFoundException(`Organization with ID "${org_id}" not found`);
+    }
 
     const category = await this.prisma.productCategory.findUnique({
       where: { id: createProductDto.subcategoryid },
@@ -18,13 +26,25 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
         `Category with ID "${createProductDto.subcategoryid}" not found`,
       );
     }
+    if (category.org_id !== org_id) {
+      throw new BadRequestException(
+        `Category with ID "${createProductDto.subcategoryid}" does not belong to organization "${org_id}"`,
+      );
+    }
 
     if (createProductDto.brandid) {
       const brand = await this.prisma.brand.findUnique({
         where: { id: createProductDto.brandid },
       });
       if (!brand) {
-        throw new NotFoundException(`Brand with ID "${createProductDto.brandid}" not found`);
+        throw new NotFoundException(
+          `Brand with ID "${createProductDto.brandid}" not found`,
+        );
+      }
+      if (brand.org_id !== org_id) {
+        throw new BadRequestException(
+          `Brand with ID "${createProductDto.brandid}" does not belong to organization "${org_id}"`,
+        );
       }
     }
 
@@ -33,33 +53,57 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
         where: { id: createProductDto.supplier_id },
       });
       if (!supplier) {
-        throw new NotFoundException(`Supplier with ID "${createProductDto.supplier_id}" not found`);
+        throw new NotFoundException(
+          `Supplier with ID "${createProductDto.supplier_id}" not found`,
+        );
+      }
+      if (supplier.org_id !== org_id) {
+        throw new BadRequestException(
+          `Supplier with ID "${createProductDto.supplier_id}" does not belong to organization "${org_id}"`,
+        );
       }
     }
 
-    const sku = createProductDto.SKU || (await this.generateUniqueSKU());
-    const barcode = createProductDto.barcode || (await this.generateUniqueBarcode());
+    const sku =
+      createProductDto.SKU || (await this.generateUniqueSKU(org_id));
+    const barcode =
+      createProductDto.barcode || (await this.generateUniqueBarcode(org_id));
 
     if (createProductDto.SKU) {
       const existingSku = await this.prisma.product.findUnique({
-        where: { SKU: sku },
+        where: {
+          org_id_SKU: {
+            org_id,
+            SKU: sku,
+          },
+        },
       });
       if (existingSku) {
-        throw new BadRequestException(`Product with SKU "${sku}" already exists`);
+        throw new BadRequestException(
+          `Product with SKU "${sku}" already exists in this organization`,
+        );
       }
     }
 
     if (createProductDto.barcode) {
       const existingBarcode = await this.prisma.product.findUnique({
-        where: { barcode },
+        where: {
+          org_id_barcode: {
+            org_id,
+            barcode,
+          },
+        },
       });
       if (existingBarcode) {
-        throw new BadRequestException(`Product with barcode "${barcode}" already exists`);
+        throw new BadRequestException(
+          `Product with barcode "${barcode}" already exists in this organization`,
+        );
       }
     }
 
     const product = await this.prisma.product.create({
       data: {
+        org_id,
         name: createProductDto.name,
         subcategoryid: createProductDto.subcategoryid,
         brandid: createProductDto.brandid || null,
@@ -97,7 +141,7 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
     });
   }
 
-  private async generateUniqueSKU(): Promise<string> {
+  private async generateUniqueSKU(orgId: string): Promise<string> {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let isUnique = false;
     let sku = '';
@@ -107,7 +151,12 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
         sku += chars.charAt(Math.floor(Math.random() * chars.length));
       }
       const existing = await this.prisma.product.findUnique({
-        where: { SKU: sku },
+        where: {
+          org_id_SKU: {
+            org_id: orgId,
+            SKU: sku,
+          },
+        },
       });
       if (!existing) {
         isUnique = true;
@@ -116,13 +165,19 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
     return sku;
   }
 
-  private async generateUniqueBarcode(): Promise<string> {
+  private async generateUniqueBarcode(orgId: string): Promise<string> {
     let isUnique = false;
     let barcode = '';
     while (!isUnique) {
-      barcode = '880' + Math.floor(100000000 + Math.random() * 900000000).toString();
+      barcode =
+        '880' + Math.floor(100000000 + Math.random() * 900000000).toString();
       const existing = await this.prisma.product.findUnique({
-        where: { barcode },
+        where: {
+          org_id_barcode: {
+            org_id: orgId,
+            barcode,
+          },
+        },
       });
       if (!existing) {
         isUnique = true;

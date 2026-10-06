@@ -25,8 +25,8 @@ export class ProductsService {
     return this.commandBus.execute(new CreateProductCommand(createProductDto));
   }
 
-  async findAll() {
-    return this.queryBus.execute(new GetProductsQuery());
+  async findAll(orgId?: string) {
+    return this.queryBus.execute(new GetProductsQuery(orgId));
   }
 
   async findOne(id: string) {

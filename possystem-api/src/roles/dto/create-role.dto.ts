@@ -4,9 +4,14 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateRoleDto {
+  @IsUUID()
+  @IsNotEmpty()
+  org_id!: string;
+
   @IsString()
   @IsNotEmpty()
   name!: string;
@@ -14,10 +19,6 @@ export class CreateRoleDto {
   @IsString()
   @IsOptional()
   description?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  is_system?: boolean;
 
   @IsBoolean()
   @IsOptional()

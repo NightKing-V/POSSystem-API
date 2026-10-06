@@ -75,13 +75,14 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
 
     // 5. Create ProductCategory
     const cat = await prisma.productCategory.create({
-      data: { name: 'Electronics', level: 0 },
+      data: { org_id: orgId, name: 'Electronics', level: 0 },
     });
     categoryId = cat.id;
 
     // 6. Create Product
     const prod = await prisma.product.create({
       data: {
+        org_id: orgId,
         subcategoryid: categoryId,
         name: 'Test Product X',
         SKU: `SKU-${Date.now()}`,
@@ -203,6 +204,7 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
     it('should create and validate a coupon discount', async () => {
       const code = `SAVE20-${Date.now()}`;
       const discount = await discountsService.create({
+        org_id: orgId,
         name: '20% OFF ORDER',
         type: 'PERCENTAGE',
         value: 20,
@@ -217,7 +219,7 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
       discountId = discount!.id;
 
       // Validate valid coupon
-      const result = await discountsService.validateCoupon(code, [
+      const result = await discountsService.validateCoupon(code, orgId, [
         {
           product_id: productId,
           category_id: categoryId,
@@ -229,7 +231,7 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
       expect(result.discount_amount).toBe(20); // 20% of 100
 
       // Validate failing min_val
-      const resultFailVal = await discountsService.validateCoupon(code, [
+      const resultFailVal = await discountsService.validateCoupon(code, orgId, [
         {
           product_id: productId,
           category_id: categoryId,
@@ -249,6 +251,7 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
       // 1. Create a Coupon
       const code = `BILLCOUP-${Date.now()}`;
       const coupon = await discountsService.create({
+        org_id: orgId,
         name: '$10 Fixed Discount',
         type: 'FIXED',
         value: 10,

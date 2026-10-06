@@ -6,8 +6,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class GetRolesHandler implements IQueryHandler<GetRolesQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute() {
-    return this.prisma.role.findMany({
+  async execute(query: GetRolesQuery) {
+    const { orgId } = query;
+    return this.prisma.orgRole.findMany({
+      where: orgId ? { org_id: orgId } : undefined,
       include: {
         permissions: {
           include: {

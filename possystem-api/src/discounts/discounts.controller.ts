@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { DiscountsService } from './discounts.service';
@@ -25,13 +26,14 @@ export class DiscountsController {
   }
 
   @Get()
-  findAll() {
-    return this.discountsService.findAll();
+  findAll(@Query('orgId') orgId?: string) {
+    return this.discountsService.findAll(orgId);
   }
 
   @Post('validate')
   validateCoupon(@Body() validateCouponDto: ValidateCouponDto) {
     return this.discountsService.validateCoupon(
+      validateCouponDto.org_id,
       validateCouponDto.code,
       validateCouponDto.items,
     );
@@ -55,4 +57,3 @@ export class DiscountsController {
     return this.discountsService.remove(id);
   }
 }
-

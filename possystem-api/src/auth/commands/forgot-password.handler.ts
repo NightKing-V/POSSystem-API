@@ -15,10 +15,14 @@ export class ForgotPasswordHandler implements ICommandHandler<ForgotPasswordComm
   }
 
   async execute(command: ForgotPasswordCommand) {
-    const { email, redirectTo } = command;
-    const { data, error } = await this.supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectTo || undefined,
-    });
+    const { email } = command;
+    const redirectTo = process.env.SUPABASE_REDIRECT_URL?.trim() || undefined;
+    const { data, error } = await this.supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo,
+      },
+    );
     if (error) throw new BadRequestException(error.message);
     return data;
   }

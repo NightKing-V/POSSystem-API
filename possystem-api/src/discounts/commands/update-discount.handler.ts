@@ -1,5 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { UpdateDiscountCommand } from './update-discount.command';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -27,11 +31,54 @@ export class UpdateDiscountHandler implements ICommandHandler<UpdateDiscountComm
       updateDiscountDto.coup_code !== discount.coup_code
     ) {
       const existing = await this.prisma.discount.findUnique({
-        where: { coup_code: updateDiscountDto.coup_code },
+        where: {
+          org_id_coup_code: {
+            org_id: discount.org_id,
+            coup_code: updateDiscountDto.coup_code,
+          },
+        },
       });
       if (existing) {
         throw new ConflictException(
-          `Discount coupon code "${updateDiscountDto.coup_code}" already exists`,
+          `Discount coupon code "${updateDiscountDto.coup_code}" already exists in this organization`,
+        );
+      }
+    }
+
+    const finalScope = updateDiscountDto.scope || discount.scope;
+
+    if (
+      finalScope === 'PRODUCT' &&
+      updateDiscountDto.product_ids &&
+      updateDiscountDto.product_ids.length > 0
+    ) {
+      const validProducts = await this.prisma.product.count({
+        where: {
+          id: { in: updateDiscountDto.product_ids },
+          org_id: discount.org_id,
+        },
+      });
+      if (validProducts !== updateDiscountDto.product_ids.length) {
+        throw new BadRequestException(
+          'One or more specified product_ids do not exist or do not belong to this organization',
+        );
+      }
+    }
+
+    if (
+      finalScope === 'CATEGORY' &&
+      updateDiscountDto.category_ids &&
+      updateDiscountDto.category_ids.length > 0
+    ) {
+      const validCategories = await this.prisma.productCategory.count({
+        where: {
+          id: { in: updateDiscountDto.category_ids },
+          org_id: discount.org_id,
+        },
+      });
+      if (validCategories !== updateDiscountDto.category_ids.length) {
+        throw new BadRequestException(
+          'One or more specified category_ids do not exist or do not belong to this organization',
         );
       }
     }
@@ -75,8 +122,6 @@ export class UpdateDiscountHandler implements ICommandHandler<UpdateDiscountComm
           scope: updateDiscountDto.scope,
         },
       });
-
-      const finalScope = updateDiscountDto.scope || discount.scope;
 
       if (updateDiscountDto.product_ids !== undefined) {
         await tx.productDiscount.deleteMany({
