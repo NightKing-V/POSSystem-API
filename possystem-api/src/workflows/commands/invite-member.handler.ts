@@ -64,46 +64,50 @@ export class InviteMemberHandler implements ICommandHandler<InviteMemberCommand>
       });
     }
 
-    // Assign roles in UserRole table
-    if (inviteDto.roleIds && inviteDto.roleIds.length > 0) {
-      for (const roleId of inviteDto.roleIds) {
-        // Verify organization role exists and belongs to this organization
-        const role = await this.prisma.orgRole.findUnique({
-          where: { id: roleId },
-        });
+    // Assign single role in OrgMember table
+    const targetRoleId =
+      inviteDto.roleId ||
+      (inviteDto.roleIds && inviteDto.roleIds.length > 0
+        ? inviteDto.roleIds[0]
+        : undefined);
 
-        if (!role) {
-          throw new BadRequestException(`Role with ID "${roleId}" not found`);
-        }
+    if (targetRoleId) {
+      // Verify organization role exists and belongs to this organization
+      const role = await this.prisma.orgRole.findUnique({
+        where: { id: targetRoleId },
+      });
 
-        if (role.org_id !== orgId) {
-          throw new BadRequestException(
-            `Role with ID "${roleId}" does not belong to organization "${orgId}"`,
-          );
-        }
-
-        // Check if role is already assigned
-        const existingAssignment = await this.prisma.userRole.findUnique({
-          where: {
-            user_id_role_id_org_id: {
-              user_id: user.id,
-              role_id: roleId,
-              org_id: orgId,
-            },
-          },
-        });
-
-        if (!existingAssignment) {
-          await this.prisma.userRole.create({
-            data: {
-              user_id: user.id,
-              role_id: roleId,
-              org_id: orgId,
-              assigned_by: assignerId,
-            },
-          });
-        }
+      if (!role) {
+        throw new BadRequestException(
+          `Role with ID "${targetRoleId}" not found`,
+        );
       }
+
+      if (role.org_id !== orgId) {
+        throw new BadRequestException(
+          `Role with ID "${targetRoleId}" does not belong to organization "${orgId}"`,
+        );
+      }
+
+      await this.prisma.orgMember.upsert({
+        where: {
+          user_id_org_id: {
+            user_id: user.id,
+            org_id: orgId,
+          },
+        },
+        update: {
+          role_id: targetRoleId,
+          assigned_by: assignerId,
+          assigned_at: new Date(),
+        },
+        create: {
+          user_id: user.id,
+          org_id: orgId,
+          role_id: targetRoleId,
+          assigned_by: assignerId,
+        },
+      });
     }
 
     // Assign locations in UserLocation table

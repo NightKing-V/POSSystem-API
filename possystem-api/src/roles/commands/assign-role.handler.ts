@@ -33,36 +33,22 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
       );
     }
 
-    const existing = await this.prisma.userRole.findUnique({
+    return this.prisma.orgMember.upsert({
       where: {
-        user_id_role_id_org_id: {
+        user_id_org_id: {
           user_id: userId,
-          role_id: roleId,
           org_id: orgId,
         },
       },
-      include: {
-        role: {
-          include: {
-            permissions: {
-              include: {
-                permission: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    return this.prisma.userRole.create({
-      data: {
-        user_id: userId,
+      update: {
         role_id: roleId,
+        assigned_by: assignerId,
+        assigned_at: new Date(),
+      },
+      create: {
+        user_id: userId,
         org_id: orgId,
+        role_id: roleId,
         assigned_by: assignerId,
       },
       include: {

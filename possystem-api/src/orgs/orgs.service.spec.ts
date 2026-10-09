@@ -34,7 +34,7 @@ describe('OrgsService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
-    systemRole: {
+    roleTemplate: {
       findMany: jest.fn(),
     },
     orgRole: {
@@ -51,8 +51,9 @@ describe('OrgsService', () => {
     productCategory: {
       create: jest.fn(),
     },
-    userRole: {
+    orgMember: {
       create: jest.fn(),
+      upsert: jest.fn(),
       findUnique: jest.fn(),
       deleteMany: jest.fn(),
     },
@@ -132,7 +133,7 @@ describe('OrgsService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should create organization, provision OrgRoles from SystemRole templates, and assign entrypoint Owner role', async () => {
+    it('should create organization, provision OrgRoles from RoleTemplates, and assign entrypoint Owner role', async () => {
       prisma.businessCategory.findUnique.mockResolvedValue({
         id: 'cat-id',
         type: 'RETAIL',
@@ -141,14 +142,13 @@ describe('OrgsService', () => {
         id: 'owner-uuid',
         email: 'owner@example.com',
       });
-      prisma.systemRole.findMany.mockResolvedValue([
+      prisma.roleTemplate.findMany.mockResolvedValue([
         {
-          id: 'sys-owner-id',
+          id: 'tpl-owner-id',
           key: 'OWNER',
           name: 'Owner',
           description: 'Organization Owner',
-          is_org_template: true,
-          is_org_entrypoint: true,
+          is_entrypoint: true,
           is_location_scoped: false,
           permissions: [{ permission_id: 'perm-1' }],
         },
@@ -161,7 +161,6 @@ describe('OrgsService', () => {
         id: 'owner-org-role-id',
         org_id: 'org-id',
         name: 'Owner',
-        is_builtin: true,
         is_entrypoint: true,
       });
       prisma.productCategoryTemplate.findMany.mockResolvedValue([
@@ -190,19 +189,17 @@ describe('OrgsService', () => {
       expect(prisma.orgRole.create).toHaveBeenCalledWith({
         data: {
           org_id: 'org-id',
-          system_role_id: 'sys-owner-id',
           name: 'Owner',
           description: 'Organization Owner',
-          is_builtin: true,
           is_entrypoint: true,
           is_location_scoped: false,
         },
       });
-      expect(prisma.userRole.create).toHaveBeenCalledWith({
+      expect(prisma.orgMember.create).toHaveBeenCalledWith({
         data: {
           user_id: 'owner-uuid',
-          role_id: 'owner-org-role-id',
           org_id: 'org-id',
+          role_id: 'owner-org-role-id',
           assigned_by: 'owner-uuid',
         },
       });
@@ -223,11 +220,11 @@ describe('OrgsService', () => {
         org_id: 'org-id',
         name: 'Cashier',
       });
-      prisma.userRole.findUnique.mockResolvedValue(null);
+      prisma.orgMember.upsert.mockResolvedValue({});
 
       const inviteDto = {
         email: 'existing@example.com',
-        roleIds: ['role-id'],
+        roleId: 'role-id',
       };
 
       const result = await service.addMember(
@@ -236,7 +233,7 @@ describe('OrgsService', () => {
         'assigner-id',
       );
 
-      expect(prisma.userRole.create).toHaveBeenCalled();
+      expect(prisma.orgMember.upsert).toHaveBeenCalled();
       expect(mailService.sendWelcomeBackEmail).toHaveBeenCalledWith(
         'existing@example.com',
         'org-id',
@@ -258,12 +255,12 @@ describe('OrgsService', () => {
         org_id: 'org-id',
         name: 'Cashier',
       });
-      prisma.userRole.findUnique.mockResolvedValue(null);
+      prisma.orgMember.upsert.mockResolvedValue({});
 
       const inviteDto = {
         email: 'new@example.com',
         fullname: 'New User',
-        roleIds: ['role-id'],
+        roleId: 'role-id',
       };
 
       const result = await service.addMember(
@@ -274,7 +271,7 @@ describe('OrgsService', () => {
 
       expect(authService.register).toHaveBeenCalled();
       expect(prisma.user.create).toHaveBeenCalled();
-      expect(prisma.userRole.create).toHaveBeenCalled();
+      expect(prisma.orgMember.upsert).toHaveBeenCalled();
       expect(mailService.sendInvitationEmail).toHaveBeenCalled();
       expect(result.message).toContain('User invited');
       expect(result.tempPassword).toBeDefined();

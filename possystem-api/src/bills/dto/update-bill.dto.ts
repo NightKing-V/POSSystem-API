@@ -8,4 +8,3 @@ export class UpdateBillDto extends PartialType(CreateBillDto) {
   @IsOptional()
   status?: BillStatus;
 }
-

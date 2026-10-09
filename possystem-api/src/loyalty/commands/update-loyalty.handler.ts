@@ -3,8 +3,8 @@ import { UpdateLoyaltyCommand } from './update-loyalty.command';
 
 @CommandHandler(UpdateLoyaltyCommand)
 export class UpdateLoyaltyHandler implements ICommandHandler<UpdateLoyaltyCommand> {
-  async execute(command: UpdateLoyaltyCommand) {
+  execute(command: UpdateLoyaltyCommand): Promise<string> {
     const { id } = command;
-    return `This action updates a #${id} loyalty`;
+    return Promise.resolve(`This action updates a #${id} loyalty`);
   }
 }

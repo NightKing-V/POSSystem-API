@@ -12,9 +12,21 @@ export class GetRoleHandler implements IQueryHandler<GetRoleQuery> {
     const role = await this.prisma.orgRole.findUnique({
       where: { id },
       include: {
-        permissions: {
+        members: {
           include: {
-            permission: true,
+            user: {
+              select: {
+                id: true,
+                fullname: true,
+                email: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            members: true,
+            permissions: true,
           },
         },
       },
@@ -27,3 +39,4 @@ export class GetRoleHandler implements IQueryHandler<GetRoleQuery> {
     return role;
   }
 }
+

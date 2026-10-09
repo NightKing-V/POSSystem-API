@@ -16,7 +16,9 @@ export class DeleteUserWorkflowHandler implements ICommandHandler<DeleteUserWork
 
   async execute(command: DeleteUserWorkflowCommand) {
     const { userId } = command;
-    this.logger.log(`Executing non-atomic DeleteUserWorkflow for userId: ${userId}`);
+    this.logger.log(
+      `Executing non-atomic DeleteUserWorkflow for userId: ${userId}`,
+    );
 
     // 1. Find all organizations owned by the user
     const ownedOrgs = await this.prisma.org.findMany({
@@ -33,6 +35,8 @@ export class DeleteUserWorkflowHandler implements ICommandHandler<DeleteUserWork
     this.logger.log(`Executing DeleteUserCommand for userId: ${userId}`);
     await this.commandBus.execute(new DeleteUserCommand(userId));
 
-    return { message: 'User and all nested service records deleted successfully.' };
+    return {
+      message: 'User and all nested service records deleted successfully.',
+    };
   }
 }

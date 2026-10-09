@@ -9,7 +9,11 @@ import { ProductQueryHandlers } from './queries';
 @Module({
   imports: [CqrsModule, PrismaModule],
   controllers: [ProductsController],
-  providers: [ProductsService, ...ProductCommandHandlers, ...ProductQueryHandlers],
+  providers: [
+    ProductsService,
+    ...ProductCommandHandlers,
+    ...ProductQueryHandlers,
+  ],
   exports: [ProductsService, CqrsModule],
 })
 export class ProductsModule {}

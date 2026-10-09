@@ -12,4 +12,3 @@ export class GetBusinessCategoriesHandler implements IQueryHandler<GetBusinessCa
     });
   }
 }
-

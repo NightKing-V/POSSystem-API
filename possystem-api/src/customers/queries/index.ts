@@ -6,7 +6,4 @@ export * from './get-customer.handler';
 import { GetCustomersHandler } from './get-customers.handler';
 import { GetCustomerHandler } from './get-customer.handler';
 
-export const CustomerQueryHandlers = [
-  GetCustomersHandler,
-  GetCustomerHandler,
-];
+export const CustomerQueryHandlers = [GetCustomersHandler, GetCustomerHandler];

@@ -4,9 +4,7 @@ import { AddOrgRolePermissionsCommand } from './add-org-role-permissions.command
 import { PrismaService } from '../../prisma/prisma.service';
 
 @CommandHandler(AddOrgRolePermissionsCommand)
-export class AddOrgRolePermissionsHandler
-  implements ICommandHandler<AddOrgRolePermissionsCommand>
-{
+export class AddOrgRolePermissionsHandler implements ICommandHandler<AddOrgRolePermissionsCommand> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(command: AddOrgRolePermissionsCommand) {
@@ -16,7 +14,9 @@ export class AddOrgRolePermissionsHandler
       where: { id: roleId },
     });
     if (!role) {
-      throw new NotFoundException(`Organization role with ID "${roleId}" not found`);
+      throw new NotFoundException(
+        `Organization role with ID "${roleId}" not found`,
+      );
     }
 
     const uniqueIds = Array.from(new Set(permissionIds));
@@ -49,9 +49,10 @@ export class AddOrgRolePermissionsHandler
     return this.prisma.orgRole.findUnique({
       where: { id: roleId },
       include: {
-        permissions: {
-          include: {
-            permission: true,
+        _count: {
+          select: {
+            members: true,
+            permissions: true,
           },
         },
       },

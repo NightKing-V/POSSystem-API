@@ -74,123 +74,123 @@ export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand> {
       throw new NotFoundException('Owner user not found');
     }
 
-    // 3. Provision organization, built-in OrgRoles, entrypoint UserRole,
+    // 3. Provision organization, default OrgRoles from RoleTemplates, entrypoint OrgMember,
     //    default ProductCategories from templates, and initial Branch atomically
-    return this.prisma.$transaction(async (tx) => {
-      // 3a. Load SystemRole blueprints marked as organization templates
-      const roleTemplates = await tx.systemRole.findMany({
-        where: { is_org_template: true },
-        include: { permissions: true },
-      });
+    return this.prisma.$transaction(
+      async (tx) => {
+        // 3a. Load RoleTemplate blueprints for organization roles
+        const roleTemplates = await tx.roleTemplate.findMany({
+          include: { permissions: true },
+        });
 
-      if (roleTemplates.length === 0) {
-        throw new InternalServerErrorException(
-          'System role templates are not seeded. Please run `npx prisma db seed`.',
-        );
-      }
+        if (roleTemplates.length === 0) {
+          throw new InternalServerErrorException(
+            'Organization role templates are not seeded. Please run `npx prisma db seed`.',
+          );
+        }
 
-      const hasEntrypoint = roleTemplates.some((r) => r.is_org_entrypoint);
-      if (!hasEntrypoint) {
-        throw new InternalServerErrorException(
-          'No entrypoint system role template configured (`is_org_entrypoint: true`).',
-        );
-      }
+        const hasEntrypoint = roleTemplates.some((r) => r.is_entrypoint);
+        if (!hasEntrypoint) {
+          throw new InternalServerErrorException(
+            'No entrypoint role template configured (`is_entrypoint: true`).',
+          );
+        }
 
-      // 3b. Create the Organization
-      const org = await tx.org.create({
-        data: {
-          owner_id: ownerId,
-          businesscategory_id: category.id,
-          address: createOrgDto.address || null,
-          phone: createOrgDto.phone || null,
-        },
-      });
-
-      // 3c. Clone SystemRole templates into OrgRole + OrgRolePermission for this Org
-      let entrypointOrgRoleId: string | null = null;
-
-      for (const tpl of roleTemplates) {
-        const orgRole = await tx.orgRole.create({
+        // 3b. Create the Organization
+        const org = await tx.org.create({
           data: {
-            org_id: org.id,
-            system_role_id: tpl.id,
-            name: tpl.name,
-            description: tpl.description,
-            is_builtin: true,
-            is_entrypoint: tpl.is_org_entrypoint,
-            is_location_scoped: tpl.is_location_scoped,
+            owner_id: ownerId,
+            businesscategory_id: category.id,
+            address: createOrgDto.address || null,
+            phone: createOrgDto.phone || null,
           },
         });
 
-        if (tpl.permissions && tpl.permissions.length > 0) {
-          await tx.orgRolePermission.createMany({
-            data: tpl.permissions.map((rp) => ({
-              org_role_id: orgRole.id,
-              permission_id: rp.permission_id,
-            })),
-            skipDuplicates: true,
-          });
-        }
+        // 3c. Clone RoleTemplates into OrgRole + OrgRolePermission for this Org
+        let entrypointOrgRoleId: string | null = null;
 
-        if (orgRole.is_entrypoint) {
-          entrypointOrgRoleId = orgRole.id;
-        }
-      }
-
-      // 3d. Assign creator to the newly provisioned entrypoint OrgRole
-      await tx.userRole.create({
-        data: {
-          user_id: ownerId,
-          role_id: entrypointOrgRoleId!,
-          org_id: org.id,
-          assigned_by: ownerId,
-        },
-      });
-
-      // 3e. Clone ProductCategoryTemplate hierarchy for this BusinessCategory into ProductCategory
-      const categoryTemplates = await tx.productCategoryTemplate.findMany({
-        where: { businesscategory_id: category.id },
-        orderBy: { level: 'asc' },
-      });
-
-      if (categoryTemplates.length > 0) {
-        const templateToOrgCategoryMap = new Map<string, string>();
-
-        for (const catTpl of categoryTemplates) {
-          const parentOrgCatId = catTpl.parent_id
-            ? (templateToOrgCategoryMap.get(catTpl.parent_id) ?? null)
-            : null;
-
-          const createdCat = await tx.productCategory.create({
+        for (const tpl of roleTemplates) {
+          const orgRole = await tx.orgRole.create({
             data: {
               org_id: org.id,
-              template_id: catTpl.id,
-              parent_id: parentOrgCatId,
-              name: catTpl.name,
-              level: catTpl.level,
+              name: tpl.name,
+              description: tpl.description,
+              is_entrypoint: tpl.is_entrypoint,
+              is_location_scoped: tpl.is_location_scoped,
             },
           });
 
-          templateToOrgCategoryMap.set(catTpl.id, createdCat.id);
+          if (tpl.permissions && tpl.permissions.length > 0) {
+            await tx.orgRolePermission.createMany({
+              data: tpl.permissions.map((rp) => ({
+                org_role_id: orgRole.id,
+                permission_id: rp.permission_id,
+              })),
+              skipDuplicates: true,
+            });
+          }
+
+          if (orgRole.is_entrypoint) {
+            entrypointOrgRoleId = orgRole.id;
+          }
         }
-      }
 
-      // 3f. Create default InventoryLocation (Branch)
-      await tx.inventoryLocation.create({
-        data: {
-          org_id: org.id,
-          name: createOrgDto.businessName || 'Main Branch',
-          type: 'BRANCH',
-          phone: createOrgDto.phone || null,
-          address: createOrgDto.address || null,
-          is_active: true,
-        },
-      });
+        // 3d. Assign creator to the newly provisioned entrypoint OrgRole as an OrgMember
+        await tx.orgMember.create({
+          data: {
+            user_id: ownerId,
+            org_id: org.id,
+            role_id: entrypointOrgRoleId!,
+            assigned_by: ownerId,
+          },
+        });
 
-      return org;
-    }, {
-      maxWait: 10000,
-      timeout: 30000,
-    });
+        // 3e. Clone ProductCategoryTemplate hierarchy for this BusinessCategory into ProductCategory
+        const categoryTemplates = await tx.productCategoryTemplate.findMany({
+          where: { businesscategory_id: category.id },
+          orderBy: { level: 'asc' },
+        });
+
+        if (categoryTemplates.length > 0) {
+          const templateToOrgCategoryMap = new Map<string, string>();
+
+          for (const catTpl of categoryTemplates) {
+            const parentOrgCatId = catTpl.parent_id
+              ? (templateToOrgCategoryMap.get(catTpl.parent_id) ?? null)
+              : null;
+
+            const createdCat = await tx.productCategory.create({
+              data: {
+                org_id: org.id,
+                template_id: catTpl.id,
+                parent_id: parentOrgCatId,
+                name: catTpl.name,
+                level: catTpl.level,
+              },
+            });
+
+            templateToOrgCategoryMap.set(catTpl.id, createdCat.id);
+          }
+        }
+
+        // 3f. Create default InventoryLocation (Branch)
+        await tx.inventoryLocation.create({
+          data: {
+            org_id: org.id,
+            name: createOrgDto.businessName || 'Main Branch',
+            type: 'BRANCH',
+            phone: createOrgDto.phone || null,
+            address: createOrgDto.address || null,
+            is_active: true,
+          },
+        });
+
+        return org;
+      },
+      {
+        maxWait: 10000,
+        timeout: 30000,
+      },
+    );
   }
 }

@@ -41,11 +41,7 @@ export class DiscountsService {
     return this.commandBus.execute(new DeleteDiscountCommand(id));
   }
 
-  async validateCoupon(
-    orgId: string,
-    code: string,
-    items?: CouponItemDto[],
-  ) {
+  async validateCoupon(orgId: string, code: string, items?: CouponItemDto[]) {
     return this.queryBus.execute(new ValidateCouponQuery(orgId, code, items));
   }
 }

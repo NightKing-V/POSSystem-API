@@ -1,4 +1,5 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { NotFoundException } from '@nestjs/common';
 import { GetUserRolesQuery } from './get-user-roles.query';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -8,10 +9,12 @@ export class GetUserRolesHandler implements IQueryHandler<GetUserRolesQuery> {
 
   async execute(query: GetUserRolesQuery) {
     const { userId, orgId } = query;
-    return this.prisma.userRole.findMany({
+    const membership = await this.prisma.orgMember.findUnique({
       where: {
-        user_id: userId,
-        org_id: orgId,
+        user_id_org_id: {
+          user_id: userId,
+          org_id: orgId,
+        },
       },
       include: {
         role: {
@@ -25,5 +28,13 @@ export class GetUserRolesHandler implements IQueryHandler<GetUserRolesQuery> {
         },
       },
     });
+
+    if (!membership) {
+      throw new NotFoundException(
+        `User "${userId}" is not a member of organization "${orgId}"`,
+      );
+    }
+
+    return membership;
   }
 }

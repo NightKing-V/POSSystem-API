@@ -3,16 +3,22 @@ import { NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { GetSystemRolePermissionsQuery } from './get-system-role-permissions.query';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  createPaginatedResult,
+  getPaginationParams,
+} from '../../common/pagination';
 
 @QueryHandler(GetSystemRolePermissionsQuery)
-export class GetSystemRolePermissionsHandler
-  implements IQueryHandler<GetSystemRolePermissionsQuery>
-{
+export class GetSystemRolePermissionsHandler implements IQueryHandler<GetSystemRolePermissionsQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(query: GetSystemRolePermissionsQuery) {
     const { roleId, queryDto = {} } = query;
-    const { page = 1, limit = 20, resource, action, search } = queryDto;
+    const { resource, action, search } = queryDto;
+    const { page, limit, skip, take } = getPaginationParams(
+      queryDto.page,
+      queryDto.limit,
+    );
 
     const role = await this.prisma.systemRole.findUnique({
       where: { id: roleId },
@@ -20,10 +26,6 @@ export class GetSystemRolePermissionsHandler
     if (!role) {
       throw new NotFoundException(`System role with ID "${roleId}" not found`);
     }
-
-    const safePage = Math.max(1, Number(page) || 1);
-    const safeLimit = Math.min(200, Math.max(1, Number(limit) || 20));
-    const skip = (safePage - 1) * safeLimit;
 
     const permissionFilter: Prisma.PermissionWhereInput = {};
     if (resource) permissionFilter.resource = resource;
@@ -47,7 +49,7 @@ export class GetSystemRolePermissionsHandler
       this.prisma.systemRolePermission.findMany({
         where,
         skip,
-        take: safeLimit,
+        take,
         include: { permission: true },
         orderBy: [
           { permission: { resource: 'asc' } },
@@ -57,20 +59,21 @@ export class GetSystemRolePermissionsHandler
       this.prisma.systemRolePermission.count({ where }),
     ]);
 
+    const paginated = createPaginatedResult(
+      links.map((l) => l.permission),
+      total,
+      page,
+      limit,
+    );
+
     return {
       role: {
         id: role.id,
         key: role.key,
         name: role.name,
-        is_org_template: role.is_org_template,
+        description: role.description,
       },
-      data: links.map((l) => l.permission),
-      meta: {
-        total,
-        page: safePage,
-        limit: safeLimit,
-        totalPages: Math.ceil(total / safeLimit) || 1,
-      },
+      ...paginated,
     };
   }
 }

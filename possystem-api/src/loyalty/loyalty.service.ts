@@ -16,9 +16,7 @@ export class LoyaltyService {
   ) {}
 
   async create(createLoyaltyDto: CreateLoyaltyDto) {
-    return this.commandBus.execute(
-      new CreateLoyaltyCommand(createLoyaltyDto),
-    );
+    return this.commandBus.execute(new CreateLoyaltyCommand(createLoyaltyDto));
   }
 
   async findAll() {

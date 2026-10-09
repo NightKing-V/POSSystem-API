@@ -4,9 +4,7 @@ import { AddSystemRolePermissionsCommand } from './add-system-role-permissions.c
 import { PrismaService } from '../../prisma/prisma.service';
 
 @CommandHandler(AddSystemRolePermissionsCommand)
-export class AddSystemRolePermissionsHandler
-  implements ICommandHandler<AddSystemRolePermissionsCommand>
-{
+export class AddSystemRolePermissionsHandler implements ICommandHandler<AddSystemRolePermissionsCommand> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(command: AddSystemRolePermissionsCommand) {
@@ -49,9 +47,10 @@ export class AddSystemRolePermissionsHandler
     return this.prisma.systemRole.findUnique({
       where: { id: roleId },
       include: {
-        permissions: {
-          include: {
-            permission: true,
+        _count: {
+          select: {
+            users: true,
+            permissions: true,
           },
         },
       },

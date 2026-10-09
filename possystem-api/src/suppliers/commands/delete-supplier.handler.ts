@@ -52,8 +52,12 @@ export class DeleteSupplierHandler implements ICommandHandler<DeleteSupplierComm
         });
 
         // Delete credit info
-        await tx.supplierCreditTransaction.deleteMany({ where: { supplier_id: id } });
-        await tx.supplierCreditAccount.deleteMany({ where: { supplier_id: id } });
+        await tx.supplierCreditTransaction.deleteMany({
+          where: { supplier_id: id },
+        });
+        await tx.supplierCreditAccount.deleteMany({
+          where: { supplier_id: id },
+        });
       }
 
       return tx.supplier.delete({

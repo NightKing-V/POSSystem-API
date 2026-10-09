@@ -14,7 +14,7 @@ export class GetOrgHandler implements IQueryHandler<GetOrgQuery> {
       include: {
         business_category: true,
         owner: true,
-        user_roles: {
+        members: {
           include: {
             role: true,
             user: true,

@@ -8,9 +8,7 @@ import { UpdateSystemRoleCommand } from './update-system-role.command';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @CommandHandler(UpdateSystemRoleCommand)
-export class UpdateSystemRoleHandler
-  implements ICommandHandler<UpdateSystemRoleCommand>
-{
+export class UpdateSystemRoleHandler implements ICommandHandler<UpdateSystemRoleCommand> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(command: UpdateSystemRoleCommand) {
@@ -39,9 +37,6 @@ export class UpdateSystemRoleHandler
         key: roleData.key,
         name: roleData.name,
         description: roleData.description,
-        is_org_template: roleData.is_org_template,
-        is_org_entrypoint: roleData.is_org_entrypoint,
-        is_location_scoped: roleData.is_location_scoped,
       },
     });
 
@@ -73,12 +68,14 @@ export class UpdateSystemRoleHandler
     return this.prisma.systemRole.findUnique({
       where: { id },
       include: {
-        permissions: {
-          include: {
-            permission: true,
+        _count: {
+          select: {
+            users: true,
+            permissions: true,
           },
         },
       },
     });
   }
 }
+

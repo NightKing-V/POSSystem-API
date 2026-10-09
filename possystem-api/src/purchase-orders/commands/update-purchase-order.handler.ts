@@ -3,8 +3,8 @@ import { UpdatePurchaseOrderCommand } from './update-purchase-order.command';
 
 @CommandHandler(UpdatePurchaseOrderCommand)
 export class UpdatePurchaseOrderHandler implements ICommandHandler<UpdatePurchaseOrderCommand> {
-  async execute(command: UpdatePurchaseOrderCommand) {
+  execute(command: UpdatePurchaseOrderCommand): Promise<string> {
     const { id } = command;
-    return `This action updates a #${id} purchaseOrder`;
+    return Promise.resolve(`This action updates a #${id} purchaseOrder`);
   }
 }

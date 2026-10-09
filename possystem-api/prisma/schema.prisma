@@ -107,8 +107,8 @@ model User {
   owned_orgs             Org[]
   system_roles           UserSystemRole[]            @relation("UserSystemRoles")
   assigned_system_roles  UserSystemRole[]            @relation("SystemRoleAssigner")
-  roles                  UserRole[]                  @relation("UserRoles")
-  assigned_roles         UserRole[]                  @relation("RoleAssigner")
+  org_memberships        OrgMember[]                 @relation("OrgMembers")
+  assigned_org_members   OrgMember[]                 @relation("OrgMemberAssigner")
   locations              UserLocation[]              @relation("UserLocations")
   assigned_locations     UserLocation[]              @relation("LocationAssigner")
   stock_batches          StockBatch[]
@@ -121,44 +121,58 @@ model User {
 }
 
 model SystemRole {
-  id                 String                 @id @default(uuid())
-  key                String                 @unique
+  id          String                 @id @default(uuid())
+  key         String                 @unique
+  name        String
+  description String?
+  permissions SystemRolePermission[]
+  users       UserSystemRole[]
+}
+
+model RoleTemplate {
+  id                 String                   @id @default(uuid())
+  key                String                   @unique
   name               String
   description        String?
-  is_org_template    Boolean                @default(true)
-  is_org_entrypoint  Boolean                @default(false)
-  is_location_scoped Boolean                @default(false)
-  permissions        SystemRolePermission[]
-  users              UserSystemRole[]
-  org_roles          OrgRole[]
+  is_entrypoint      Boolean                  @default(false)
+  is_location_scoped Boolean                  @default(false)
+  permissions        RoleTemplatePermission[]
+}
+
+model RoleTemplatePermission {
+  role_template_id String
+  permission_id    String
+  role_template    RoleTemplate @relation(fields: [role_template_id], references: [id], onDelete: Cascade)
+  permission       Permission   @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@id([role_template_id, permission_id])
 }
 
 model OrgRole {
   id                 String              @id @default(uuid())
   org_id             String
-  system_role_id     String?
   name               String
   description        String?
-  is_builtin         Boolean             @default(false)
   is_entrypoint      Boolean             @default(false)
   is_location_scoped Boolean             @default(false)
 
   org         Org                 @relation(fields: [org_id], references: [id], onDelete: Cascade)
-  system_role SystemRole?         @relation(fields: [system_role_id], references: [id])
   permissions OrgRolePermission[]
-  users       UserRole[]
+  members     OrgMember[]
 
   @@unique([org_id, name])
+  @@unique([id, org_id])
   @@index([org_id])
 }
 
 model Permission {
-  id           String                 @id @default(uuid())
-  resource     String
-  action       String
-  description  String?
-  system_roles SystemRolePermission[]
-  org_roles    OrgRolePermission[]
+  id             String                   @id @default(uuid())
+  resource       String
+  action         String
+  description    String?
+  system_roles   SystemRolePermission[]
+  role_templates RoleTemplatePermission[]
+  org_roles      OrgRolePermission[]
 
   @@unique([resource, action])
 }
@@ -194,19 +208,21 @@ model UserSystemRole {
   @@id([user_id, system_role_id])
 }
 
-model UserRole {
+model OrgMember {
   user_id     String
-  role_id     String
   org_id      String
+  role_id     String
   assigned_at DateTime @default(now())
   assigned_by String?
 
-  user     User    @relation("UserRoles", fields: [user_id], references: [id])
-  role     OrgRole @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  user     User    @relation("OrgMembers", fields: [user_id], references: [id], onDelete: Cascade)
   org      Org     @relation(fields: [org_id], references: [id], onDelete: Cascade)
-  assigner User?   @relation("RoleAssigner", fields: [assigned_by], references: [id])
+  role     OrgRole @relation(fields: [role_id, org_id], references: [id, org_id])
+  assigner User?   @relation("OrgMemberAssigner", fields: [assigned_by], references: [id])
 
-  @@id([user_id, role_id, org_id])
+  @@id([user_id, org_id])
+  @@index([org_id])
+  @@index([role_id])
 }
 
 model UserLocation {
@@ -237,7 +253,7 @@ model Org {
   business_category BusinessCategory @relation(fields: [businesscategory_id], references: [id])
 
   roles             OrgRole[]
-  user_roles        UserRole[]
+  members           OrgMember[]
   categories        ProductCategory[]
   brands            Brand[]
   products          Product[]

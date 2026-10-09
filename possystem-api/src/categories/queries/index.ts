@@ -6,7 +6,4 @@ export * from './get-category.handler';
 import { GetCategoriesHandler } from './get-categories.handler';
 import { GetCategoryHandler } from './get-category.handler';
 
-export const CategoryQueryHandlers = [
-  GetCategoriesHandler,
-  GetCategoryHandler,
-];
+export const CategoryQueryHandlers = [GetCategoriesHandler, GetCategoryHandler];

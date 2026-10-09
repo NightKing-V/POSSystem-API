@@ -31,7 +31,9 @@ export class DeleteOrgHandler implements ICommandHandler<DeleteOrgCommand> {
       where: { org_id: id },
       select: { id: true },
     });
-    this.logger.debug(`Found ${bills.length} bills under Org ${id}. Deleting...`);
+    this.logger.debug(
+      `Found ${bills.length} bills under Org ${id}. Deleting...`,
+    );
     for (const bill of bills) {
       await this.commandBus.execute(new DeleteBillCommand(bill.id, true));
     }
@@ -41,12 +43,18 @@ export class DeleteOrgHandler implements ICommandHandler<DeleteOrgCommand> {
       where: { org_id: id },
       select: { id: true },
     });
-    this.logger.debug(`Found ${pos.length} purchase orders under Org ${id}. Deleting...`);
+    this.logger.debug(
+      `Found ${pos.length} purchase orders under Org ${id}. Deleting...`,
+    );
     const poIds = pos.map((p) => p.id);
     if (poIds.length > 0) {
       await this.prisma.$transaction(async (tx) => {
-        await tx.purchaseOrderItem.deleteMany({ where: { po_id: { in: poIds } } });
-        await tx.supplierCreditTransaction.deleteMany({ where: { po_id: { in: poIds } } });
+        await tx.purchaseOrderItem.deleteMany({
+          where: { po_id: { in: poIds } },
+        });
+        await tx.supplierCreditTransaction.deleteMany({
+          where: { po_id: { in: poIds } },
+        });
         await tx.purchaseOrder.deleteMany({ where: { id: { in: poIds } } });
       });
     }
@@ -57,9 +65,13 @@ export class DeleteOrgHandler implements ICommandHandler<DeleteOrgCommand> {
       where: { org_id: id },
       select: { id: true },
     });
-    this.logger.debug(`Found ${suppliers.length} suppliers under Org ${id}. Deleting...`);
+    this.logger.debug(
+      `Found ${suppliers.length} suppliers under Org ${id}. Deleting...`,
+    );
     for (const supplier of suppliers) {
-      await this.commandBus.execute(new DeleteSupplierCommand(supplier.id, true));
+      await this.commandBus.execute(
+        new DeleteSupplierCommand(supplier.id, true),
+      );
     }
 
     // 4. Delete all customers under the organization
@@ -68,9 +80,13 @@ export class DeleteOrgHandler implements ICommandHandler<DeleteOrgCommand> {
       where: { org_id: id },
       select: { id: true },
     });
-    this.logger.debug(`Found ${customers.length} customers under Org ${id}. Deleting...`);
+    this.logger.debug(
+      `Found ${customers.length} customers under Org ${id}. Deleting...`,
+    );
     for (const customer of customers) {
-      await this.commandBus.execute(new DeleteCustomerCommand(customer.id, true));
+      await this.commandBus.execute(
+        new DeleteCustomerCommand(customer.id, true),
+      );
     }
 
     // 5. Delete all inventory locations (branches/warehouses) under the organization
@@ -80,9 +96,13 @@ export class DeleteOrgHandler implements ICommandHandler<DeleteOrgCommand> {
       where: { org_id: id },
       select: { id: true },
     });
-    this.logger.debug(`Found ${locations.length} locations under Org ${id}. Deleting...`);
+    this.logger.debug(
+      `Found ${locations.length} locations under Org ${id}. Deleting...`,
+    );
     for (const location of locations) {
-      await this.commandBus.execute(new DeleteInventoryCommand(location.id, true));
+      await this.commandBus.execute(
+        new DeleteInventoryCommand(location.id, true),
+      );
     }
 
     // 6. Delete remaining Org-scoped catalog, discounts, configurations, roles, and the Org itself
@@ -112,9 +132,9 @@ export class DeleteOrgHandler implements ICommandHandler<DeleteOrgCommand> {
       });
       await tx.productCategory.deleteMany({ where: { org_id: id } });
 
-      // 6e. Loyalty config, UserRoles, OrgRoles, and Org
+      // 6e. Loyalty config, OrgMembers, OrgRoles, and Org
       await tx.loyaltyProgramConfig.deleteMany({ where: { org_id: id } });
-      await tx.userRole.deleteMany({ where: { org_id: id } });
+      await tx.orgMember.deleteMany({ where: { org_id: id } });
       await tx.orgRolePermission.deleteMany({
         where: { org_role: { org_id: id } },
       });
@@ -123,7 +143,9 @@ export class DeleteOrgHandler implements ICommandHandler<DeleteOrgCommand> {
     });
 
     this.logger.log(`Organization ${id} successfully deleted.`);
-    return { success: true, message: `Organization ${id} deleted successfully.` };
+    return {
+      success: true,
+      message: `Organization ${id} deleted successfully.`,
+    };
   }
 }
-

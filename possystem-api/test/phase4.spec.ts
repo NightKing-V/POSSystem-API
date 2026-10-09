@@ -131,8 +131,12 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
     await prisma.billItem.deleteMany({});
     await prisma.billPayment.deleteMany({});
     await prisma.bill.deleteMany({});
-    await prisma.inventoryTransaction.deleteMany({ where: { location_id: locationId } });
-    await prisma.inventoryStock.deleteMany({ where: { location_id: locationId } });
+    await prisma.inventoryTransaction.deleteMany({
+      where: { location_id: locationId },
+    });
+    await prisma.inventoryStock.deleteMany({
+      where: { location_id: locationId },
+    });
     await prisma.stockBatch.deleteMany({ where: { product_id: productId } });
     await prisma.productPrice.deleteMany({ where: { productid: productId } });
     await prisma.product.deleteMany({ where: { id: productId } });
@@ -191,7 +195,7 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
 
       // Try finding again, should throw NotFoundException
       await expect(customersService.findOne(customerId)).rejects.toThrow();
-      
+
       // Restore customer soft-delete state for billing tests
       await prisma.customer.update({
         where: { id: customerId },
@@ -274,7 +278,9 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
 
       // Check initial stock
       const initialStock = await prisma.inventoryStock.findUnique({
-        where: { batch_id_location_id: { batch_id: batchId, location_id: locationId } },
+        where: {
+          batch_id_location_id: { batch_id: batchId, location_id: locationId },
+        },
       });
       expect(initialStock!.quantity_on_hand).toBe(50);
 
@@ -311,12 +317,16 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
 
       // Check stock was deducted
       const postStock = await prisma.inventoryStock.findUnique({
-        where: { batch_id_location_id: { batch_id: batchId, location_id: locationId } },
+        where: {
+          batch_id_location_id: { batch_id: batchId, location_id: locationId },
+        },
       });
       expect(postStock!.quantity_on_hand).toBe(48); // 50 - 2
 
       // Check loyalty points earned (10% of 209.00 = 20.9 -> 20 points)
-      const postCustomer = await prisma.customer.findUnique({ where: { id: customerId } });
+      const postCustomer = await prisma.customer.findUnique({
+        where: { id: customerId },
+      });
       expect(postCustomer!.loyalty_points).toBe(20);
       expect(postCustomer!.total_visits).toBe(1);
       expect(Number(postCustomer!.total_spent)).toBe(209);
@@ -336,12 +346,16 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
 
       // Check stock was restored
       const restoredStock = await prisma.inventoryStock.findUnique({
-        where: { batch_id_location_id: { batch_id: batchId, location_id: locationId } },
+        where: {
+          batch_id_location_id: { batch_id: batchId, location_id: locationId },
+        },
       });
       expect(restoredStock!.quantity_on_hand).toBe(50); // Restored to 50
 
       // Check loyalty points reverted
-      const revertedCustomer = await prisma.customer.findUnique({ where: { id: customerId } });
+      const revertedCustomer = await prisma.customer.findUnique({
+        where: { id: customerId },
+      });
       expect(revertedCustomer!.loyalty_points).toBe(0); // Deducted back to 0
       expect(revertedCustomer!.total_visits).toBe(0); // Reverted metrics
       expect(Number(revertedCustomer!.total_spent)).toBe(0);
@@ -349,7 +363,9 @@ describe('Phase 4: Customers, Discounts & Billing (Integration)', () => {
       // Clean up Coupon & Bill & Customer
       await discountsService.remove(coupon!.id);
       await billsService.remove(bill.id);
-      await prisma.customerCreditAccount.deleteMany({ where: { customer_id: customerId } });
+      await prisma.customerCreditAccount.deleteMany({
+        where: { customer_id: customerId },
+      });
       await prisma.customer.delete({ where: { id: customerId } });
     });
   });

@@ -3,9 +3,7 @@ import { GetUserSystemRolesQuery } from './get-user-system-roles.query';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @QueryHandler(GetUserSystemRolesQuery)
-export class GetUserSystemRolesHandler
-  implements IQueryHandler<GetUserSystemRolesQuery>
-{
+export class GetUserSystemRolesHandler implements IQueryHandler<GetUserSystemRolesQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(query: GetUserSystemRolesQuery) {

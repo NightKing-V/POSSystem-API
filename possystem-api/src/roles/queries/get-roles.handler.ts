@@ -11,12 +11,14 @@ export class GetRolesHandler implements IQueryHandler<GetRolesQuery> {
     return this.prisma.orgRole.findMany({
       where: orgId ? { org_id: orgId } : undefined,
       include: {
-        permissions: {
-          include: {
-            permission: true,
+        _count: {
+          select: {
+            members: true,
+            permissions: true,
           },
         },
       },
     });
   }
 }
+

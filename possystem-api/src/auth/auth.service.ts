@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { PrismaService } from '../prisma/prisma.service';
@@ -23,7 +19,7 @@ export class AuthService {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
     this.logger.debug(`Initializing Supabase client with URL: ${supabaseUrl}`);
-    
+
     this.supabase = createClient(
       supabaseUrl || 'https://placeholder.supabase.co',
       supabaseServiceKey || 'placeholder',
@@ -31,7 +27,9 @@ export class AuthService {
   }
 
   async signUpSupabase(email: string, password: string) {
-    this.logger.debug(`Calling Supabase auth.admin.createUser for email: ${email}`);
+    this.logger.debug(
+      `Calling Supabase auth.admin.createUser for email: ${email}`,
+    );
     try {
       // 1. Create the user directly via Admin API
       const { data, error } = await this.supabase.auth.admin.createUser({
@@ -41,14 +39,18 @@ export class AuthService {
       });
 
       if (error) {
-        this.logger.error(`Supabase admin.createUser error for ${email}: ${error.message}`);
+        this.logger.error(
+          `Supabase admin.createUser error for ${email}: ${error.message}`,
+        );
         // Handle existing email explicitly
         if (
-          error.message.includes('already registered') || 
-          error.message.includes('already exists') || 
+          error.message.includes('already registered') ||
+          error.message.includes('already exists') ||
           (error as any).code === 'email_exists'
         ) {
-          throw new BadRequestException('An account with this email already exists.');
+          throw new BadRequestException(
+            'An account with this email already exists.',
+          );
         }
         throw new BadRequestException(error.message);
       }
@@ -64,13 +66,20 @@ export class AuthService {
         options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
       });
       if (resendError) {
-        this.logger.warn(`Failed to send confirmation email for ${email}: ${resendError.message}`);
+        this.logger.warn(
+          `Failed to send confirmation email for ${email}: ${resendError.message}`,
+        );
       }
 
-      this.logger.debug(`Supabase createUser complete for ${email}. Result user ID: ${data?.user?.id}`);
+      this.logger.debug(
+        `Supabase createUser complete for ${email}. Result user ID: ${data?.user?.id}`,
+      );
       return data;
     } catch (err) {
-      this.logger.error(`Error during Supabase signUp for ${email}: ${err.message}`, err.stack);
+      this.logger.error(
+        `Error during Supabase signUp for ${email}: ${err.message}`,
+        err.stack,
+      );
       throw err;
     }
   }
@@ -78,7 +87,9 @@ export class AuthService {
   async isEmailConfirmed(userId: string): Promise<boolean> {
     const { data, error } = await this.supabase.auth.admin.getUserById(userId);
     if (error) {
-      this.logger.error(`Failed to retrieve user status for ID ${userId}: ${error.message}`);
+      this.logger.error(
+        `Failed to retrieve user status for ID ${userId}: ${error.message}`,
+      );
       throw new BadRequestException(error.message);
     }
     return data.user?.email_confirmed_at !== null;
@@ -161,7 +172,11 @@ export class AuthService {
     return false;
   }
 
-  async verifyRegistrationOtp(dto: { email: string; token: string; type?: any }) {
+  async verifyRegistrationOtp(dto: {
+    email: string;
+    token: string;
+    type?: any;
+  }) {
     const otpType = dto.type || 'signup';
     const otpExpirySeconds =
       Number(process.env.SUPABASE_OTP_EXPIRY_SECONDS) || 3600;
@@ -178,8 +193,9 @@ export class AuthService {
         where: { email: dto.email },
       });
       if (localUser) {
-        const { data: adminData } =
-          await this.supabase.auth.admin.getUserById(localUser.id);
+        const { data: adminData } = await this.supabase.auth.admin.getUserById(
+          localUser.id,
+        );
         supabaseUser = adminData?.user ?? null;
       }
     } catch (lookupErr) {
@@ -206,7 +222,7 @@ export class AuthService {
     const { data, error } = await this.supabase.auth.verifyOtp({
       email: dto.email,
       token: dto.token,
-      type: otpType as any,
+      type: otpType,
     });
 
     if (error) {
@@ -253,7 +269,9 @@ export class AuthService {
     this.logger.debug(`Deleting user ${userId} from Supabase Auth...`);
     const { error } = await this.supabase.auth.admin.deleteUser(userId);
     if (error) {
-      this.logger.error(`Failed to delete user ${userId} from Supabase: ${error.message}`);
+      this.logger.error(
+        `Failed to delete user ${userId} from Supabase: ${error.message}`,
+      );
       throw new BadRequestException(error.message);
     }
     this.logger.log(`User ${userId} successfully deleted from Supabase Auth.`);

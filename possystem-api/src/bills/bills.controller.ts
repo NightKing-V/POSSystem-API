@@ -48,4 +48,3 @@ export class BillsController {
     return this.billsService.remove(id);
   }
 }
-

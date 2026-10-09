@@ -30,9 +30,7 @@ export class BillsService {
   }
 
   async update(id: string, updateBillDto: UpdateBillDto) {
-    return this.commandBus.execute(
-      new CancelBillCommand(id, updateBillDto),
-    );
+    return this.commandBus.execute(new CancelBillCommand(id, updateBillDto));
   }
 
   async remove(id: string) {

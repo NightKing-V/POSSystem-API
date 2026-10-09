@@ -43,7 +43,6 @@ export class CreateRoleHandler implements ICommandHandler<CreateRoleCommand> {
         org_id: roleData.org_id,
         name: roleData.name,
         description: roleData.description || null,
-        is_builtin: false,
         is_entrypoint: false,
         is_location_scoped: roleData.is_location_scoped || false,
       },
@@ -73,12 +72,14 @@ export class CreateRoleHandler implements ICommandHandler<CreateRoleCommand> {
     return this.prisma.orgRole.findUnique({
       where: { id: role.id },
       include: {
-        permissions: {
-          include: {
-            permission: true,
+        _count: {
+          select: {
+            members: true,
+            permissions: true,
           },
         },
       },
     });
   }
 }
+

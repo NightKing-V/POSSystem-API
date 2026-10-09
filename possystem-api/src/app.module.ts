@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { RolesModule } from './roles/roles.module';
+import { AdminModule } from './admin/admin.module';
 import { OrgsModule } from './orgs/orgs.module';
 import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
@@ -30,6 +31,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     UsersModule,
     AuthModule,
     RolesModule,
+    AdminModule,
     OrgsModule,
     ProductsModule,
     CategoriesModule,
@@ -52,4 +54,3 @@ export class AppModule implements NestModule {
     consumer.apply(LoggerMiddleware).forRoutes('*');
   }
 }
-

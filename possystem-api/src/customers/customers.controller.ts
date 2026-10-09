@@ -47,4 +47,3 @@ export class CustomersController {
     return this.customersService.remove(id);
   }
 }
-

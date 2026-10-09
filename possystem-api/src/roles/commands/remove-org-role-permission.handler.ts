@@ -4,9 +4,7 @@ import { RemoveOrgRolePermissionCommand } from './remove-org-role-permission.com
 import { PrismaService } from '../../prisma/prisma.service';
 
 @CommandHandler(RemoveOrgRolePermissionCommand)
-export class RemoveOrgRolePermissionHandler
-  implements ICommandHandler<RemoveOrgRolePermissionCommand>
-{
+export class RemoveOrgRolePermissionHandler implements ICommandHandler<RemoveOrgRolePermissionCommand> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(command: RemoveOrgRolePermissionCommand) {

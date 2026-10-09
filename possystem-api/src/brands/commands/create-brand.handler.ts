@@ -1,7 +1,4 @@
-import {
-  CommandHandler,
-  ICommandHandler,
-} from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundException } from '@nestjs/common';
 import { CreateBrandCommand } from './create-brand.command';
 import { PrismaService } from '../../prisma/prisma.service';

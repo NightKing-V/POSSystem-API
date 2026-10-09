@@ -3,8 +3,8 @@ import { DeleteLoyaltyCommand } from './delete-loyalty.command';
 
 @CommandHandler(DeleteLoyaltyCommand)
 export class DeleteLoyaltyHandler implements ICommandHandler<DeleteLoyaltyCommand> {
-  async execute(command: DeleteLoyaltyCommand) {
+  execute(command: DeleteLoyaltyCommand): Promise<string> {
     const { id } = command;
-    return `This action removes a #${id} loyalty`;
+    return Promise.resolve(`This action removes a #${id} loyalty`);
   }
 }

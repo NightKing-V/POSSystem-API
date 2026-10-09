@@ -4,9 +4,7 @@ import { AssignSystemRoleCommand } from './assign-system-role.command';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @CommandHandler(AssignSystemRoleCommand)
-export class AssignSystemRoleHandler
-  implements ICommandHandler<AssignSystemRoleCommand>
-{
+export class AssignSystemRoleHandler implements ICommandHandler<AssignSystemRoleCommand> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(command: AssignSystemRoleCommand) {
@@ -22,12 +20,6 @@ export class AssignSystemRoleHandler
     });
     if (!role) {
       throw new NotFoundException(`System role with ID "${roleId}" not found`);
-    }
-
-    if (role.is_org_template) {
-      throw new BadRequestException(
-        `System role "${role.name}" is an organization role template and cannot be assigned directly as a platform-level system role. Assign the organization's corresponding OrgRole via /roles/org/assign/:orgId/:userId instead.`,
-      );
     }
 
     const existing = await this.prisma.userSystemRole.findUnique({

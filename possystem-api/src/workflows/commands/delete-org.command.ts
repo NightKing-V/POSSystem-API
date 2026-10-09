@@ -5,4 +5,3 @@ export class DeleteOrgCommand implements ICommand {
 }
 
 export { DeleteOrgCommand as DeleteOrgWorkflowCommand };
-

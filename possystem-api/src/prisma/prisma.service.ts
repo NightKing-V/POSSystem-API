@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -15,7 +20,7 @@ export class PrismaService
       connectionString: process.env.DATABASE_URL,
     });
     const adapter = new PrismaPg(pool);
-    
+
     const isProduction = process.env.NODE_ENV === 'production';
     super({
       adapter,
@@ -39,7 +44,9 @@ export class PrismaService
     const isProduction = process.env.NODE_ENV === 'production';
     if (!isProduction) {
       (this as any).$on('query', (e: any) => {
-        this.logger.debug(`Query: ${e.query} | Params: ${e.params} | Duration: ${e.duration}ms`);
+        this.logger.debug(
+          `Query: ${e.query} | Params: ${e.params} | Duration: ${e.duration}ms`,
+        );
       });
       (this as any).$on('info', (e: any) => {
         this.logger.log(e.message);
