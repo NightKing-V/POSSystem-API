@@ -4,9 +4,7 @@ import { GetUserOrgPermissionsQuery } from './get-user-org-permissions.query';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @QueryHandler(GetUserOrgPermissionsQuery)
-export class GetUserOrgPermissionsHandler
-  implements IQueryHandler<GetUserOrgPermissionsQuery>
-{
+export class GetUserOrgPermissionsHandler implements IQueryHandler<GetUserOrgPermissionsQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(query: GetUserOrgPermissionsQuery) {
@@ -24,10 +22,12 @@ export class GetUserOrgPermissionsHandler
       throw new NotFoundException(`Organization with ID "${orgId}" not found`);
     }
 
-    const userRoles = await this.prisma.userRole.findMany({
+    const membership = await this.prisma.orgMember.findUnique({
       where: {
-        user_id: userId,
-        org_id: orgId,
+        user_id_org_id: {
+          user_id: userId,
+          org_id: orgId,
+        },
       },
       include: {
         role: {
@@ -42,31 +42,28 @@ export class GetUserOrgPermissionsHandler
       },
     });
 
-    const permissionMap = new Map<
-      string,
-      { id: string; resource: string; action: string; description: string | null }
-    >();
-
-    for (const ur of userRoles) {
-      for (const rp of ur.role.permissions) {
-        permissionMap.set(rp.permission.id, rp.permission);
-      }
+    if (!membership) {
+      throw new NotFoundException(
+        `User "${userId}" is not a member of organization "${orgId}"`,
+      );
     }
 
-    const permissions = Array.from(permissionMap.values()).sort((a, b) =>
-      a.resource === b.resource
-        ? a.action.localeCompare(b.action)
-        : a.resource.localeCompare(b.resource),
-    );
+    const permissions = membership.role.permissions
+      .map((rp) => rp.permission)
+      .sort((a, b) =>
+        a.resource === b.resource
+          ? a.action.localeCompare(b.action)
+          : a.resource.localeCompare(b.resource),
+      );
 
     return {
       user_id: userId,
       org_id: orgId,
-      roles: userRoles.map((ur) => ({
-        id: ur.role.id,
-        name: ur.role.name,
-        is_location_scoped: ur.role.is_location_scoped,
-      })),
+      role: {
+        id: membership.role.id,
+        name: membership.role.name,
+        is_location_scoped: membership.role.is_location_scoped,
+      },
       permissions,
     };
   }

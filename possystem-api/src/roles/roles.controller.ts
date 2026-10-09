@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,15 +20,12 @@ import {
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { CreateSystemRoleDto } from './dto/create-system-role.dto';
-import { UpdateSystemRoleDto } from './dto/update-system-role.dto';
-import { CreatePermissionDto } from './dto/create-permission.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { ModifyRolePermissionsDto } from './dto/role-permissions.dto';
 import { GetPermissionsQueryDto } from './dto/get-permissions-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@ApiTags('Roles & Permissions')
+@ApiTags('Organization Roles & Memberships')
 @ApiBearerAuth()
 @Controller('roles')
 @UseGuards(JwtAuthGuard)
@@ -35,69 +33,188 @@ export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   // ==========================================
-  // 1. ORGANIZATION ROLES & PERMISSIONS (/roles/org/*)
+  // 1. ORGANIZATION ROLES CRUD (/roles & /roles/org)
   // ==========================================
 
-  @Post('org')
+  @Post(['', 'org'])
   @ApiOperation({
     summary: 'Create a custom organization role (OrgRole)',
     description:
       'Creates a role scoped to a specific organization (`org_id`) and attaches permissions.',
   })
-  createOrgRole(@Body() createRoleDto: CreateRoleDto) {
-    return this.rolesService.createOrgRole(createRoleDto);
+  create(@Body() createRoleDto: CreateRoleDto) {
+    return this.rolesService.create(createRoleDto);
   }
 
-  @Get('org')
+  @Get(['', 'org'])
   @ApiOperation({
     summary: 'List organization roles (OrgRole)',
     description:
-      'Returns organization-scoped roles with their permissions and assignment counts. Optionally filter by `orgId`.',
+      'Returns organization-scoped roles with member and permission counts (`_count`). Does not inline the full permissions array.',
   })
   @ApiQuery({
     name: 'orgId',
     required: false,
     description: 'Filter roles by organization UUID',
   })
-  findAllOrgRoles(@Query('orgId') orgId?: string) {
-    return this.rolesService.findAllOrgRoles(orgId);
+  findAll(@Query('orgId') orgId?: string) {
+    return this.rolesService.findAll(orgId);
   }
 
-  @Get('org/user-roles/:orgId/:userId')
-  @ApiOperation({
-    summary: 'Get organization roles assigned to a user in a specific org',
-  })
-  getUserOrgRoles(
-    @Param('orgId') orgId: string,
-    @Param('userId') userId: string,
-  ) {
-    return this.rolesService.getUserOrgRoles(userId, orgId);
-  }
+  // ==========================================
+  // 2. ORG ROLE PERMISSIONS (/roles/permissions?roleId=... & /roles/:roleId/permissions)
+  // ==========================================
 
-  @Get('org/user-permissions/:orgId/:userId')
+  @Get(['permissions', 'org/permissions'])
   @ApiOperation({
     summary:
-      'Get deduplicated effective organization permissions for a user in an org',
+      'List permissions assigned to an organization role via query param (?roleId=... or ?roleid=..., paginated)',
   })
-  getUserOrgPermissions(
+  @ApiQuery({
+    name: 'roleId',
+    required: true,
+    description: 'Organization Role UUID (also accepts lowercase `roleid`)',
+  })
+  getRolePermissionsByQuery(@Query() queryDto: GetPermissionsQueryDto) {
+    const resolvedRoleId = queryDto.roleId || queryDto.roleid;
+    if (!resolvedRoleId) {
+      throw new BadRequestException(
+        'Query parameter "roleId" (or "roleid") is required to fetch role permissions',
+      );
+    }
+    return this.rolesService.getRolePermissions(resolvedRoleId, queryDto);
+  }
+
+  @Post(['permissions', 'org/permissions'])
+  @ApiOperation({
+    summary:
+      'Attach one or more permissions to an organization role via query param (?roleId=... or ?roleid=...)',
+  })
+  addRolePermissionsByQuery(
+    @Query('roleId') roleId: string | undefined,
+    @Query('roleid') roleid: string | undefined,
+    @Body() dto: ModifyRolePermissionsDto,
+  ) {
+    const resolvedRoleId = roleId || roleid;
+    if (!resolvedRoleId) {
+      throw new BadRequestException(
+        'Query parameter "roleId" (or "roleid") is required',
+      );
+    }
+    return this.rolesService.addRolePermissions(
+      resolvedRoleId,
+      dto.permissionIds,
+    );
+  }
+
+  @Delete(['permissions/:permissionId', 'org/permissions/:permissionId'])
+  @ApiOperation({
+    summary:
+      'Remove a permission from an organization role via query param (?roleId=... or ?roleid=...)',
+  })
+  removeRolePermissionByQuery(
+    @Param('permissionId') permissionId: string,
+    @Query('roleId') roleId?: string,
+    @Query('roleid') roleid?: string,
+  ) {
+    const resolvedRoleId = roleId || roleid;
+    if (!resolvedRoleId) {
+      throw new BadRequestException(
+        'Query parameter "roleId" (or "roleid") is required',
+      );
+    }
+    return this.rolesService.removeRolePermission(resolvedRoleId, permissionId);
+  }
+
+  @Get([':roleId/permissions', 'org/:roleId/permissions'])
+  @ApiOperation({
+    summary: 'List permissions assigned to an organization role (paginated)',
+  })
+  getRolePermissions(
+    @Param('roleId') roleId: string,
+    @Query() queryDto: GetPermissionsQueryDto,
+  ) {
+    return this.rolesService.getRolePermissions(roleId, queryDto);
+  }
+
+  @Post([':roleId/permissions', 'org/:roleId/permissions'])
+  @ApiOperation({
+    summary: 'Attach one or more permissions to an organization role',
+  })
+  addRolePermissions(
+    @Param('roleId') roleId: string,
+    @Body() dto: ModifyRolePermissionsDto,
+  ) {
+    return this.rolesService.addRolePermissions(roleId, dto.permissionIds);
+  }
+
+  @Delete([
+    ':roleId/permissions/:permissionId',
+    'org/:roleId/permissions/:permissionId',
+  ])
+  @ApiOperation({
+    summary: 'Remove a permission from an organization role',
+  })
+  removeRolePermission(
+    @Param('roleId') roleId: string,
+    @Param('permissionId') permissionId: string,
+  ) {
+    return this.rolesService.removeRolePermission(roleId, permissionId);
+  }
+
+  // ==========================================
+  // 3. ORGANIZATION MEMBER ROLES & PERMISSIONS
+  // ==========================================
+
+  @Get(['user-roles/:orgId/:userId', 'org/user-roles/:orgId/:userId'])
+  @ApiOperation({
+    summary:
+      'Get the organization membership and single assigned OrgRole for a user in an org',
+  })
+  getUserRole(@Param('orgId') orgId: string, @Param('userId') userId: string) {
+    return this.rolesService.getUserRole(userId, orgId);
+  }
+
+  @Get([
+    'user-permissions/:orgId/:userId',
+    'org/user-permissions/:orgId/:userId',
+  ])
+  @ApiOperation({
+    summary:
+      'Get effective organization permissions for a specific user from their assigned OrgRole',
+  })
+  getUserPermissions(
     @Param('orgId') orgId: string,
     @Param('userId') userId: string,
   ) {
-    return this.rolesService.getUserOrgPermissions(userId, orgId);
+    return this.rolesService.getUserPermissions(userId, orgId);
   }
 
-  @Post('org/assign/:orgId/:userId')
+  @Get(['my-permissions/:orgId', 'org/my-permissions/:orgId'])
   @ApiOperation({
-    summary: 'Assign an organization role (OrgRole) to a user in an org',
+    summary:
+      'Get effective organization permissions for the currently authenticated user from their assigned OrgRole',
   })
-  assignOrgRole(
+  getMyPermissions(
+    @Param('orgId') orgId: string,
+    @Request() req: { user: { userId: string; email: string } },
+  ) {
+    return this.rolesService.getUserPermissions(req.user.userId, orgId);
+  }
+
+  @Post(['assign/:orgId/:userId', 'org/assign/:orgId/:userId'])
+  @ApiOperation({
+    summary:
+      'Assign or update the single organization role (OrgRole) for a member in an org',
+  })
+  assignRole(
     @Param('orgId') orgId: string,
     @Param('userId') userId: string,
     @Body() assignRoleDto: AssignRoleDto,
     @Request() req: { user: { userId: string; email: string } },
   ) {
     const assignerId = req.user.userId;
-    return this.rolesService.assignOrgRoleToUser(
+    return this.rolesService.assignRoleToUser(
       userId,
       orgId,
       assignRoleDto.roleId,
@@ -105,255 +222,59 @@ export class RolesController {
     );
   }
 
-  @Delete('org/unassign/:orgId/:userId/:roleId')
+  @Delete(['unassign/:orgId/:userId', 'org/unassign/:orgId/:userId'])
   @ApiOperation({
-    summary: 'Unassign an organization role (OrgRole) from a user in an org',
+    summary: 'Remove a user membership and role from an organization',
   })
-  unassignOrgRole(
+  unassignMember(
+    @Param('orgId') orgId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.rolesService.removeRoleFromUser(userId, orgId);
+  }
+
+  @Delete([
+    'unassign/:orgId/:userId/:roleId',
+    'org/unassign/:orgId/:userId/:roleId',
+  ])
+  @ApiOperation({
+    summary:
+      'Remove a user membership from an organization (validating roleId)',
+  })
+  unassignRole(
     @Param('orgId') orgId: string,
     @Param('userId') userId: string,
     @Param('roleId') roleId: string,
   ) {
-    return this.rolesService.removeOrgRoleFromUser(userId, orgId, roleId);
+    return this.rolesService.removeRoleFromUser(userId, orgId, roleId);
   }
 
-  @Get('org/:roleId/permissions')
-  @ApiOperation({
-    summary: 'List permissions assigned to an organization role (paginated)',
-  })
-  getOrgRolePermissions(
-    @Param('roleId') roleId: string,
-    @Query() queryDto: GetPermissionsQueryDto,
-  ) {
-    return this.rolesService.getOrgRolePermissions(roleId, queryDto);
-  }
+  // ==========================================
+  // 4. SINGLE ORG ROLE OPERATIONS (/roles/:id & /roles/org/:id)
+  // ==========================================
 
-  @Post('org/:roleId/permissions')
-  @ApiOperation({
-    summary: 'Attach one or more permissions to an organization role',
-  })
-  addOrgRolePermissions(
-    @Param('roleId') roleId: string,
-    @Body() dto: ModifyRolePermissionsDto,
-  ) {
-    return this.rolesService.addOrgRolePermissions(roleId, dto.permissionIds);
-  }
-
-  @Delete('org/:roleId/permissions/:permissionId')
-  @ApiOperation({
-    summary: 'Remove a permission from an organization role',
-  })
-  removeOrgRolePermission(
-    @Param('roleId') roleId: string,
-    @Param('permissionId') permissionId: string,
-  ) {
-    return this.rolesService.removeOrgRolePermission(roleId, permissionId);
-  }
-
-  @Get('org/:id')
+  @Get(['org/:id', ':id'])
   @ApiOperation({
     summary: 'Get a single organization role (OrgRole) by ID',
   })
-  findOneOrgRole(@Param('id') id: string) {
-    return this.rolesService.findOneOrgRole(id);
+  findOne(@Param('id') id: string) {
+    return this.rolesService.findOne(id);
   }
 
-  @Patch('org/:id')
+  @Patch(['org/:id', ':id'])
   @ApiOperation({
     summary: 'Update an organization role (OrgRole) and its permissions',
   })
-  updateOrgRole(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
-    return this.rolesService.updateOrgRole(id, updateRoleDto);
+  update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
+    return this.rolesService.update(id, updateRoleDto);
   }
 
-  @Delete('org/:id')
+  @Delete(['org/:id', ':id'])
   @ApiOperation({
     summary: 'Delete an organization role (OrgRole)',
   })
-  removeOrgRole(@Param('id') id: string) {
-    return this.rolesService.removeOrgRole(id);
-  }
-
-  // ==========================================
-  // 2. SYSTEM ROLES & PERMISSIONS (/roles/system/*)
-  // ==========================================
-
-  @Post('system')
-  @ApiOperation({
-    summary: 'Create a system role or org role template (SystemRole)',
-    description:
-      'Creates a platform-level system role (`is_org_template: false`) or an organization role template (`is_org_template: true`).',
-  })
-  createSystemRole(@Body() createSystemRoleDto: CreateSystemRoleDto) {
-    return this.rolesService.createSystemRole(createSystemRoleDto);
-  }
-
-  @Get('system')
-  @ApiOperation({
-    summary: 'List system roles and/or org role templates (SystemRole)',
-    description:
-      'Returns `SystemRole` definitions with permissions. Filter with `?isOrgTemplate=true` for org templates (`OWNER`, `MANAGER`, `CASHIER`, `KITCHEN_STAFF`, `INVENTORY_CLERK`) or `?isOrgTemplate=false` for platform admin roles (`SYSTEM_ADMIN`).',
-  })
-  @ApiQuery({
-    name: 'isOrgTemplate',
-    required: false,
-    type: Boolean,
-    description:
-      'Optional boolean filter (`true` for org role templates, `false` for platform system roles)',
-  })
-  findAllSystemRoles(@Query('isOrgTemplate') isOrgTemplate?: string) {
-    const parsedFilter =
-      isOrgTemplate === 'true'
-        ? true
-        : isOrgTemplate === 'false'
-          ? false
-          : undefined;
-    return this.rolesService.findAllSystemRoles(parsedFilter);
-  }
-
-  @Get('system/user-roles/:userId')
-  @ApiOperation({
-    summary: 'Get platform-level system roles assigned to a user',
-  })
-  getUserSystemRoles(@Param('userId') userId: string) {
-    return this.rolesService.getUserSystemRoles(userId);
-  }
-
-  @Get('system/user-permissions/:userId')
-  @ApiOperation({
-    summary:
-      'Get deduplicated effective platform-level system permissions for a user',
-  })
-  getUserSystemPermissions(@Param('userId') userId: string) {
-    return this.rolesService.getUserSystemPermissions(userId);
-  }
-
-  @Post('system/assign/:userId')
-  @ApiOperation({
-    summary: 'Assign a platform-level system role (SystemRole) to a user',
-  })
-  assignSystemRole(
-    @Param('userId') userId: string,
-    @Body() assignRoleDto: AssignRoleDto,
-    @Request() req: { user: { userId: string; email: string } },
-  ) {
-    const assignerId = req.user.userId;
-    return this.rolesService.assignSystemRoleToUser(
-      userId,
-      assignRoleDto.roleId,
-      assignerId,
-    );
-  }
-
-  @Delete('system/unassign/:userId/:roleId')
-  @ApiOperation({
-    summary: 'Unassign a platform-level system role (SystemRole) from a user',
-  })
-  unassignSystemRole(
-    @Param('userId') userId: string,
-    @Param('roleId') roleId: string,
-  ) {
-    return this.rolesService.removeSystemRoleFromUser(userId, roleId);
-  }
-
-  @Get('system/:roleId/permissions')
-  @ApiOperation({
-    summary: 'List permissions assigned to a system role (paginated)',
-  })
-  getSystemRolePermissions(
-    @Param('roleId') roleId: string,
-    @Query() queryDto: GetPermissionsQueryDto,
-  ) {
-    return this.rolesService.getSystemRolePermissions(roleId, queryDto);
-  }
-
-  @Post('system/:roleId/permissions')
-  @ApiOperation({
-    summary: 'Attach one or more permissions to a system role',
-  })
-  addSystemRolePermissions(
-    @Param('roleId') roleId: string,
-    @Body() dto: ModifyRolePermissionsDto,
-  ) {
-    return this.rolesService.addSystemRolePermissions(
-      roleId,
-      dto.permissionIds,
-    );
-  }
-
-  @Delete('system/:roleId/permissions/:permissionId')
-  @ApiOperation({
-    summary: 'Remove a permission from a system role',
-  })
-  removeSystemRolePermission(
-    @Param('roleId') roleId: string,
-    @Param('permissionId') permissionId: string,
-  ) {
-    return this.rolesService.removeSystemRolePermission(roleId, permissionId);
-  }
-
-  @Get('system/:id')
-  @ApiOperation({
-    summary: 'Get a single system role (SystemRole) by ID',
-  })
-  findOneSystemRole(@Param('id') id: string) {
-    return this.rolesService.findOneSystemRole(id);
-  }
-
-  @Patch('system/:id')
-  @ApiOperation({
-    summary: 'Update a system role (SystemRole) and its permissions',
-  })
-  updateSystemRole(
-    @Param('id') id: string,
-    @Body() updateSystemRoleDto: UpdateSystemRoleDto,
-  ) {
-    return this.rolesService.updateSystemRole(id, updateSystemRoleDto);
-  }
-
-  @Delete('system/:id')
-  @ApiOperation({
-    summary: 'Delete a system role (SystemRole)',
-  })
-  removeSystemRole(@Param('id') id: string) {
-    return this.rolesService.removeSystemRole(id);
-  }
-
-  // ==========================================
-  // 3. GLOBAL PERMISSIONS (/roles/permissions/*)
-  // ==========================================
-
-  @Post('permissions')
-  @ApiOperation({
-    summary: 'Create a global permission (resource + action)',
-  })
-  createPermission(@Body() createPermissionDto: CreatePermissionDto) {
-    return this.rolesService.createPermission(createPermissionDto);
-  }
-
-  @Get('permissions')
-  @ApiOperation({
-    summary: 'List all global permissions (paginated & filterable)',
-  })
-  findAllPermissions(@Query() queryDto: GetPermissionsQueryDto) {
-    return this.rolesService.findAllPermissions(queryDto);
-  }
-
-  @Get('permissions/all')
-  @ApiOperation({
-    summary: 'List all global permissions (paginated & filterable alias)',
-  })
-  findAllPermissionsAlias(@Query() queryDto: GetPermissionsQueryDto) {
-    return this.rolesService.findAllPermissions(queryDto);
-  }
-
-  @Delete('permissions/:id')
-  @ApiOperation({
-    summary: 'Delete a global permission by ID',
-  })
-  removePermission(@Param('id') id: string) {
-    return this.rolesService.removePermission(id);
+  remove(@Param('id') id: string) {
+    return this.rolesService.remove(id);
   }
 }
-
 

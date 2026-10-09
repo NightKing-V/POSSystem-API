@@ -38,8 +38,8 @@ export class PermissionsGuard implements CanActivate {
       request.body?.org_id ||
       undefined;
 
-    // 1. Fetch user's organization roles (filtered by orgId when available)
-    const userRoles = await this.prisma.userRole.findMany({
+    // 1. Fetch user's organization memberships and roles (filtered by orgId when available)
+    const orgMemberships = await this.prisma.orgMember.findMany({
       where: {
         user_id: user.userId,
         ...(orgId ? { org_id: orgId } : {}),
@@ -63,8 +63,8 @@ export class PermissionsGuard implements CanActivate {
 
     // 3. Flatten into a Set of strings like "action:resource" (e.g. "create:bills")
     const userPermissions = new Set<string>([
-      ...userRoles.flatMap((ur) =>
-        ur.role.permissions.map(
+      ...orgMemberships.flatMap((om) =>
+        om.role.permissions.map(
           (rp) => `${rp.permission.action}:${rp.permission.resource}`,
         ),
       ),

@@ -20,9 +20,15 @@ export class DeleteCustomerHandler implements ICommandHandler<DeleteCustomerComm
     if (force) {
       return this.prisma.$transaction(async (tx) => {
         // Delete all customer dependencies
-        await tx.customerLoyaltyTransaction.deleteMany({ where: { customer_id: id } });
-        await tx.customerCreditTransaction.deleteMany({ where: { customer_id: id } });
-        await tx.customerCreditAccount.deleteMany({ where: { customer_id: id } });
+        await tx.customerLoyaltyTransaction.deleteMany({
+          where: { customer_id: id },
+        });
+        await tx.customerCreditTransaction.deleteMany({
+          where: { customer_id: id },
+        });
+        await tx.customerCreditAccount.deleteMany({
+          where: { customer_id: id },
+        });
 
         return tx.customer.delete({
           where: { id },

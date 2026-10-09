@@ -4,9 +4,7 @@ import { RemoveSystemRoleCommand } from './remove-system-role.command';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @CommandHandler(RemoveSystemRoleCommand)
-export class RemoveSystemRoleHandler
-  implements ICommandHandler<RemoveSystemRoleCommand>
-{
+export class RemoveSystemRoleHandler implements ICommandHandler<RemoveSystemRoleCommand> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(command: RemoveSystemRoleCommand) {

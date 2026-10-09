@@ -11,7 +11,7 @@ export class RegisterUserHandler implements ICommandHandler<RegisterUserCommand>
   constructor(
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
-  ) { }
+  ) {}
 
   async execute(command: RegisterUserCommand) {
     const { email, password, fullname, phone } = command;
@@ -21,7 +21,7 @@ export class RegisterUserHandler implements ICommandHandler<RegisterUserCommand>
       // 1. Register the user in Supabase auth provider using admin client
       this.logger.debug(`Registering user ${email} in Supabase auth...`);
       const authData = await this.authService.signUpSupabase(email, password);
-      
+
       if (!authData || !authData.user) {
         throw new BadRequestException('Registration failed. Please try again.');
       }
@@ -30,7 +30,9 @@ export class RegisterUserHandler implements ICommandHandler<RegisterUserCommand>
       this.logger.debug(`Supabase auth successful. User ID: ${userId}`);
 
       // 2. Create the user profile in Postgres
-      this.logger.debug(`Creating profile for user ${email} (ID: ${userId}) in database...`);
+      this.logger.debug(
+        `Creating profile for user ${email} (ID: ${userId}) in database...`,
+      );
       const profile = await this.prisma.user.create({
         data: {
           id: userId,
@@ -39,16 +41,23 @@ export class RegisterUserHandler implements ICommandHandler<RegisterUserCommand>
           phone: phone || null,
         },
       });
-      this.logger.debug(`Database user profile created successfully: ${JSON.stringify(profile)}`);
+      this.logger.debug(
+        `Database user profile created successfully: ${JSON.stringify(profile)}`,
+      );
 
       // 3. Successful signup, waiting for OTP verification
-      this.logger.log(`User registration successful. Pending email verification for ${email}`);
-      return { 
+      this.logger.log(
+        `User registration successful. Pending email verification for ${email}`,
+      );
+      return {
         status: 'pending_verification',
-        message: 'Registration successful. Please check your email to verify.' 
+        message: 'Registration successful. Please check your email to verify.',
       };
     } catch (error) {
-      this.logger.error(`Registration failed for user ${email}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Registration failed for user ${email}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

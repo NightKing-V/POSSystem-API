@@ -76,7 +76,10 @@ export class ValidateCouponHandler implements IQueryHandler<ValidateCouponQuery>
       };
     }
 
-    const totalQty = eligibleItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalQty = eligibleItems.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
     const eligibleSubtotal = eligibleItems.reduce(
       (sum, item) => sum + item.quantity * item.unit_price,
       0,
@@ -92,7 +95,7 @@ export class ValidateCouponHandler implements IQueryHandler<ValidateCouponQuery>
     if (discount.min_val && eligibleSubtotal < Number(discount.min_val)) {
       return {
         valid: false,
-        message: `Minimum order value of $${discount.min_val} eligible items required. Current: $${eligibleSubtotal}`,
+        message: `Minimum order value of $${discount.min_val.toString()} eligible items required. Current: $${eligibleSubtotal}`,
       };
     }
 

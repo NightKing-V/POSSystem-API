@@ -1,4 +1,11 @@
-import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateCustomerDto {
   @IsUUID()
@@ -37,4 +44,3 @@ export class CreateCustomerDto {
   @IsOptional()
   is_loyalty_member?: boolean;
 }
-

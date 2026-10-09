@@ -15,6 +15,10 @@ export class InviteMemberDto {
   @IsOptional()
   fullname?: string;
 
+  @IsString()
+  @IsOptional()
+  roleId?: string;
+
   @IsArray()
   @IsString({ each: true })
   @IsOptional()

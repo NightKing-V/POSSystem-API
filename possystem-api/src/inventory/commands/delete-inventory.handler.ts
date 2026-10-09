@@ -47,8 +47,12 @@ export class DeleteInventoryHandler implements ICommandHandler<DeleteInventoryCo
       if (force) {
         // Delete all stocks, transactions, and stock batches for this location
         await tx.inventoryStock.deleteMany({ where: { location_id: id } });
-        await tx.inventoryTransaction.deleteMany({ where: { location_id: id } });
-        await tx.stockBatch.deleteMany({ where: { received_at_location_id: id } });
+        await tx.inventoryTransaction.deleteMany({
+          where: { location_id: id },
+        });
+        await tx.stockBatch.deleteMany({
+          where: { received_at_location_id: id },
+        });
       }
 
       await tx.userLocation.deleteMany({

@@ -13,7 +13,7 @@ export class GetUsersHandler implements IQueryHandler<GetUsersQuery> {
         ? {
             OR: [
               { owned_orgs: { some: { id: orgId } } },
-              { roles: { some: { org_id: orgId } } },
+              { org_memberships: { some: { org_id: orgId } } },
             ],
           }
         : undefined,

@@ -3,7 +3,7 @@ import { CreatePurchaseOrderCommand } from './create-purchase-order.command';
 
 @CommandHandler(CreatePurchaseOrderCommand)
 export class CreatePurchaseOrderHandler implements ICommandHandler<CreatePurchaseOrderCommand> {
-  async execute(command: CreatePurchaseOrderCommand) {
-    return 'This action adds a new purchaseOrder';
+  execute(): Promise<string> {
+    return Promise.resolve('This action adds a new purchaseOrder');
   }
 }

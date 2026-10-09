@@ -3,27 +3,31 @@ import { NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { GetOrgRolePermissionsQuery } from './get-org-role-permissions.query';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  createPaginatedResult,
+  getPaginationParams,
+} from '../../common/pagination';
 
 @QueryHandler(GetOrgRolePermissionsQuery)
-export class GetOrgRolePermissionsHandler
-  implements IQueryHandler<GetOrgRolePermissionsQuery>
-{
+export class GetOrgRolePermissionsHandler implements IQueryHandler<GetOrgRolePermissionsQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(query: GetOrgRolePermissionsQuery) {
     const { roleId, queryDto = {} } = query;
-    const { page = 1, limit = 20, resource, action, search } = queryDto;
+    const { resource, action, search } = queryDto;
+    const { page, limit, skip, take } = getPaginationParams(
+      queryDto.page,
+      queryDto.limit,
+    );
 
     const role = await this.prisma.orgRole.findUnique({
       where: { id: roleId },
     });
     if (!role) {
-      throw new NotFoundException(`Organization role with ID "${roleId}" not found`);
+      throw new NotFoundException(
+        `Organization role with ID "${roleId}" not found`,
+      );
     }
-
-    const safePage = Math.max(1, Number(page) || 1);
-    const safeLimit = Math.min(200, Math.max(1, Number(limit) || 20));
-    const skip = (safePage - 1) * safeLimit;
 
     const permissionFilter: Prisma.PermissionWhereInput = {};
     if (resource) permissionFilter.resource = resource;
@@ -47,7 +51,7 @@ export class GetOrgRolePermissionsHandler
       this.prisma.orgRolePermission.findMany({
         where,
         skip,
-        take: safeLimit,
+        take,
         include: { permission: true },
         orderBy: [
           { permission: { resource: 'asc' } },
@@ -57,19 +61,20 @@ export class GetOrgRolePermissionsHandler
       this.prisma.orgRolePermission.count({ where }),
     ]);
 
+    const paginated = createPaginatedResult(
+      links.map((l) => l.permission),
+      total,
+      page,
+      limit,
+    );
+
     return {
       role: {
         id: role.id,
         org_id: role.org_id,
         name: role.name,
       },
-      data: links.map((l) => l.permission),
-      meta: {
-        total,
-        page: safePage,
-        limit: safeLimit,
-        totalPages: Math.ceil(total / safeLimit) || 1,
-      },
+      ...paginated,
     };
   }
 }

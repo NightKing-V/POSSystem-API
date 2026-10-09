@@ -14,7 +14,9 @@ export class DeleteProductPriceHandler implements ICommandHandler<DeleteProductP
       where: { id: priceId },
     });
     if (!price) {
-      throw new NotFoundException(`Product price with ID "${priceId}" not found`);
+      throw new NotFoundException(
+        `Product price with ID "${priceId}" not found`,
+      );
     }
 
     if (price.isdefault) {

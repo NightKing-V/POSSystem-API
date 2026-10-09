@@ -84,14 +84,17 @@ describe('DeleteOrgHandler', () => {
   it('should throw NotFoundException if organization does not exist', async () => {
     prisma.org.findUnique.mockResolvedValue(null);
 
-    await expect(handler.execute(new DeleteOrgCommand('non-existent-id'))).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      handler.execute(new DeleteOrgCommand('non-existent-id')),
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('should orchestrate cascading deletion via domain commands and transaction', async () => {
     prisma.org.findUnique.mockResolvedValue({ id: 'org-1' });
-    prisma.bill.findMany.mockResolvedValue([{ id: 'bill-1' }, { id: 'bill-2' }]);
+    prisma.bill.findMany.mockResolvedValue([
+      { id: 'bill-1' },
+      { id: 'bill-2' },
+    ]);
     prisma.purchaseOrder.findMany.mockResolvedValue([{ id: 'po-1' }]);
     prisma.supplier.findMany.mockResolvedValue([{ id: 'sup-1' }]);
     prisma.customer.findMany.mockResolvedValue([{ id: 'cust-1' }]);
@@ -100,11 +103,21 @@ describe('DeleteOrgHandler', () => {
     const result = await handler.execute(new DeleteOrgCommand('org-1'));
 
     // Verify deletion commands dispatched
-    expect(commandBus.execute).toHaveBeenCalledWith(new DeleteBillCommand('bill-1', true));
-    expect(commandBus.execute).toHaveBeenCalledWith(new DeleteBillCommand('bill-2', true));
-    expect(commandBus.execute).toHaveBeenCalledWith(new DeleteSupplierCommand('sup-1', true));
-    expect(commandBus.execute).toHaveBeenCalledWith(new DeleteCustomerCommand('cust-1', true));
-    expect(commandBus.execute).toHaveBeenCalledWith(new DeleteInventoryCommand('loc-1', true));
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      new DeleteBillCommand('bill-1', true),
+    );
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      new DeleteBillCommand('bill-2', true),
+    );
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      new DeleteSupplierCommand('sup-1', true),
+    );
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      new DeleteCustomerCommand('cust-1', true),
+    );
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      new DeleteInventoryCommand('loc-1', true),
+    );
 
     // Verify transaction executed
     expect(prisma.$transaction).toHaveBeenCalled();
@@ -114,4 +127,3 @@ describe('DeleteOrgHandler', () => {
     });
   });
 });
-

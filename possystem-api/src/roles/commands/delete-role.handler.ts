@@ -14,9 +14,9 @@ export class DeleteRoleHandler implements ICommandHandler<DeleteRoleCommand> {
       throw new NotFoundException(`Role with ID "${id}" not found`);
     }
 
-    if (role.is_entrypoint || role.is_builtin) {
+    if (role.is_entrypoint) {
       throw new BadRequestException(
-        `Cannot delete built-in or entrypoint organization role "${role.name}"`,
+        `Cannot delete entrypoint organization role "${role.name}"`,
       );
     }
 
@@ -24,7 +24,7 @@ export class DeleteRoleHandler implements ICommandHandler<DeleteRoleCommand> {
       where: { org_role_id: id },
     });
 
-    await this.prisma.userRole.deleteMany({
+    await this.prisma.orgMember.deleteMany({
       where: { role_id: id },
     });
 
@@ -33,3 +33,4 @@ export class DeleteRoleHandler implements ICommandHandler<DeleteRoleCommand> {
     });
   }
 }
+

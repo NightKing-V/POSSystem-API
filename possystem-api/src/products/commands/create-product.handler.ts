@@ -64,8 +64,7 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
       }
     }
 
-    const sku =
-      createProductDto.SKU || (await this.generateUniqueSKU(org_id));
+    const sku = createProductDto.SKU || (await this.generateUniqueSKU(org_id));
     const barcode =
       createProductDto.barcode || (await this.generateUniqueBarcode(org_id));
 

@@ -16,7 +16,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest();
     const response = httpContext.getResponse();
-    
+
     if (!request) {
       return next.handle();
     }
@@ -62,7 +62,13 @@ export class LoggingInterceptor implements NestInterceptor {
       return body;
     }
     const sanitized = { ...body };
-    const sensitiveKeys = ['password', 'passwordConfirm', 'token', 'accessToken', 'refreshToken'];
+    const sensitiveKeys = [
+      'password',
+      'passwordConfirm',
+      'token',
+      'accessToken',
+      'refreshToken',
+    ];
     for (const key of Object.keys(sanitized)) {
       if (sensitiveKeys.includes(key)) {
         sanitized[key] = '********';

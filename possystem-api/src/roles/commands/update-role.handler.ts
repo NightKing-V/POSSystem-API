@@ -18,7 +18,7 @@ export class UpdateRoleHandler implements ICommandHandler<UpdateRoleCommand> {
       throw new NotFoundException(`Role with ID "${id}" not found`);
     }
 
-    const { permissionIds, org_id: _ignoredOrgId, ...roleData } = updateRoleDto;
+    const { permissionIds, ...roleData } = updateRoleDto;
 
     if (roleData.name && roleData.name !== role.name) {
       const existing = await this.prisma.orgRole.findUnique({
@@ -79,12 +79,14 @@ export class UpdateRoleHandler implements ICommandHandler<UpdateRoleCommand> {
     return this.prisma.orgRole.findUnique({
       where: { id },
       include: {
-        permissions: {
-          include: {
-            permission: true,
+        _count: {
+          select: {
+            members: true,
+            permissions: true,
           },
         },
       },
     });
   }
 }
+

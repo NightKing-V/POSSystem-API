@@ -3,25 +3,20 @@ import { GetSystemRolesQuery } from './get-system-roles.query';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @QueryHandler(GetSystemRolesQuery)
-export class GetSystemRolesHandler
-  implements IQueryHandler<GetSystemRolesQuery>
-{
+export class GetSystemRolesHandler implements IQueryHandler<GetSystemRolesQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(query: GetSystemRolesQuery) {
-    const { isOrgTemplate } = query;
+  async execute() {
     return this.prisma.systemRole.findMany({
-      where:
-        isOrgTemplate !== undefined
-          ? { is_org_template: isOrgTemplate }
-          : undefined,
       include: {
-        permissions: {
-          include: {
-            permission: true,
+        _count: {
+          select: {
+            users: true,
+            permissions: true,
           },
         },
       },
     });
   }
 }
+

@@ -3,8 +3,8 @@ import { GetLoyaltyQuery } from './get-loyalty.query';
 
 @QueryHandler(GetLoyaltyQuery)
 export class GetLoyaltyHandler implements IQueryHandler<GetLoyaltyQuery> {
-  async execute(query: GetLoyaltyQuery) {
+  execute(query: GetLoyaltyQuery): Promise<string> {
     const { id } = query;
-    return `This action returns a #${id} loyalty`;
+    return Promise.resolve(`This action returns a #${id} loyalty`);
   }
 }

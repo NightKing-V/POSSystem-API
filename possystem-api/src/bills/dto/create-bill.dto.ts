@@ -103,4 +103,3 @@ export class CreateBillDto {
   @Type(() => BillPaymentDto)
   payments: BillPaymentDto[];
 }
-

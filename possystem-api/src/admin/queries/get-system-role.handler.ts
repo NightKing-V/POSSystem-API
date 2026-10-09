@@ -12,9 +12,10 @@ export class GetSystemRoleHandler implements IQueryHandler<GetSystemRoleQuery> {
     const role = await this.prisma.systemRole.findUnique({
       where: { id },
       include: {
-        permissions: {
-          include: {
-            permission: true,
+        _count: {
+          select: {
+            users: true,
+            permissions: true,
           },
         },
       },
@@ -27,3 +28,4 @@ export class GetSystemRoleHandler implements IQueryHandler<GetSystemRoleQuery> {
     return role;
   }
 }
+

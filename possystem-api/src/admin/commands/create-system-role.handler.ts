@@ -4,9 +4,7 @@ import { CreateSystemRoleCommand } from './create-system-role.command';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @CommandHandler(CreateSystemRoleCommand)
-export class CreateSystemRoleHandler
-  implements ICommandHandler<CreateSystemRoleCommand>
-{
+export class CreateSystemRoleHandler implements ICommandHandler<CreateSystemRoleCommand> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(command: CreateSystemRoleCommand) {
@@ -31,9 +29,6 @@ export class CreateSystemRoleHandler
         key: normalizedKey,
         name: roleData.name,
         description: roleData.description || null,
-        is_org_template: roleData.is_org_template ?? false,
-        is_org_entrypoint: roleData.is_org_entrypoint ?? false,
-        is_location_scoped: roleData.is_location_scoped ?? false,
       },
     });
 
@@ -61,12 +56,14 @@ export class CreateSystemRoleHandler
     return this.prisma.systemRole.findUnique({
       where: { id: role.id },
       include: {
-        permissions: {
-          include: {
-            permission: true,
+        _count: {
+          select: {
+            users: true,
+            permissions: true,
           },
         },
       },
     });
   }
 }
+

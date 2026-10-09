@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 import { buildPermissionsSeedData } from './seeds/permissions.seed';
 import { SYSTEM_ROLES_SEED } from './seeds/system-roles.seed';
+import { ROLE_TEMPLATES_SEED } from './seeds/role-templates.seed';
 import {
   BUSINESS_CATEGORIES_SEED,
   CategoryTemplateNode,
@@ -92,26 +93,23 @@ async function main() {
   const allPermissions = await prisma.permission.findMany();
   console.log(`Total permissions in database: ${allPermissions.length}`);
 
-  console.log(
-    '3. Seeding system roles & organization role templates with permissions...',
-  );
+  console.log('3. Seeding platform-level system roles...');
+  const validSystemRoleKeys = SYSTEM_ROLES_SEED.map((r) => r.key);
+  await prisma.systemRole.deleteMany({
+    where: { key: { notIn: validSystemRoleKeys } },
+  });
+
   for (const roleBlueprint of SYSTEM_ROLES_SEED) {
     const systemRole = await prisma.systemRole.upsert({
       where: { key: roleBlueprint.key },
       update: {
         name: roleBlueprint.name,
         description: roleBlueprint.description,
-        is_org_template: roleBlueprint.is_org_template,
-        is_org_entrypoint: roleBlueprint.is_org_entrypoint,
-        is_location_scoped: roleBlueprint.is_location_scoped,
       },
       create: {
         key: roleBlueprint.key,
         name: roleBlueprint.name,
         description: roleBlueprint.description,
-        is_org_template: roleBlueprint.is_org_template,
-        is_org_entrypoint: roleBlueprint.is_org_entrypoint,
-        is_location_scoped: roleBlueprint.is_location_scoped,
       },
     });
 
@@ -130,7 +128,45 @@ async function main() {
     }
 
     console.log(
-      `Synced system role [${systemRole.key}] "${systemRole.name}" (template=${systemRole.is_org_template}, entrypoint=${systemRole.is_org_entrypoint}) with ${matchedPermissions.length} permissions.`,
+      `Synced system role [${systemRole.key}] "${systemRole.name}" with ${matchedPermissions.length} permissions.`,
+    );
+  }
+
+  console.log('4. Seeding organization role templates (RoleTemplate)...');
+  for (const tplBlueprint of ROLE_TEMPLATES_SEED) {
+    const roleTemplate = await prisma.roleTemplate.upsert({
+      where: { key: tplBlueprint.key },
+      update: {
+        name: tplBlueprint.name,
+        description: tplBlueprint.description,
+        is_entrypoint: tplBlueprint.is_entrypoint,
+        is_location_scoped: tplBlueprint.is_location_scoped,
+      },
+      create: {
+        key: tplBlueprint.key,
+        name: tplBlueprint.name,
+        description: tplBlueprint.description,
+        is_entrypoint: tplBlueprint.is_entrypoint,
+        is_location_scoped: tplBlueprint.is_location_scoped,
+      },
+    });
+
+    const matchedPermissions = allPermissions.filter((p) =>
+      tplBlueprint.matchPermission(p),
+    );
+
+    if (matchedPermissions.length > 0) {
+      await prisma.roleTemplatePermission.createMany({
+        data: matchedPermissions.map((p) => ({
+          role_template_id: roleTemplate.id,
+          permission_id: p.id,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    console.log(
+      `Synced role template [${roleTemplate.key}] "${roleTemplate.name}" (entrypoint=${roleTemplate.is_entrypoint}) with ${matchedPermissions.length} permissions.`,
     );
   }
 
@@ -146,3 +182,4 @@ main()
     await prisma.$disconnect();
     await pool.end();
   });
+

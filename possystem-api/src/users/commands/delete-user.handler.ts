@@ -13,4 +13,3 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
     });
   }
 }
-

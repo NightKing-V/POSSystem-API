@@ -4,9 +4,7 @@ import { GetUserSystemPermissionsQuery } from './get-user-system-permissions.que
 import { PrismaService } from '../../prisma/prisma.service';
 
 @QueryHandler(GetUserSystemPermissionsQuery)
-export class GetUserSystemPermissionsHandler
-  implements IQueryHandler<GetUserSystemPermissionsQuery>
-{
+export class GetUserSystemPermissionsHandler implements IQueryHandler<GetUserSystemPermissionsQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(query: GetUserSystemPermissionsQuery) {
@@ -34,7 +32,12 @@ export class GetUserSystemPermissionsHandler
 
     const permissionMap = new Map<
       string,
-      { id: string; resource: string; action: string; description: string | null }
+      {
+        id: string;
+        resource: string;
+        action: string;
+        description: string | null;
+      }
     >();
 
     for (const usr of userSystemRoles) {

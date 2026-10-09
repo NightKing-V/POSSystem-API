@@ -48,7 +48,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
+  validate(payload: any) {
     // Supabase stores the user's UUID in the "sub" claim
     return { userId: payload.sub, email: payload.email };
   }

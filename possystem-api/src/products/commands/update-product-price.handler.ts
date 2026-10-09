@@ -14,7 +14,9 @@ export class UpdateProductPriceHandler implements ICommandHandler<UpdateProductP
       where: { id: priceId },
     });
     if (!price) {
-      throw new NotFoundException(`Product price with ID "${priceId}" not found`);
+      throw new NotFoundException(
+        `Product price with ID "${priceId}" not found`,
+      );
     }
 
     const effectiveFrom = updatePriceDto.effectivefrom
@@ -30,7 +32,7 @@ export class UpdateProductPriceHandler implements ICommandHandler<UpdateProductP
       }
     }
 
-    let isDefault = updatePriceDto.isdefault;
+    const isDefault = updatePriceDto.isdefault;
     if (isDefault) {
       await this.prisma.productPrice.updateMany({
         where: { productid: price.productid },

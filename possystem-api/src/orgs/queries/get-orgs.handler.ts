@@ -13,7 +13,7 @@ export class GetOrgsHandler implements IQueryHandler<GetOrgsQuery> {
         ? {
             OR: [
               { owner_id: userId },
-              { user_roles: { some: { user_id: userId } } },
+              { members: { some: { user_id: userId } } },
             ],
           }
         : undefined,

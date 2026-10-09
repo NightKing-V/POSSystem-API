@@ -3,8 +3,8 @@ import { GetPurchaseOrderQuery } from './get-purchase-order.query';
 
 @QueryHandler(GetPurchaseOrderQuery)
 export class GetPurchaseOrderHandler implements IQueryHandler<GetPurchaseOrderQuery> {
-  async execute(query: GetPurchaseOrderQuery) {
+  execute(query: GetPurchaseOrderQuery): Promise<string> {
     const { id } = query;
-    return `This action returns a #${id} purchaseOrder`;
+    return Promise.resolve(`This action returns a #${id} purchaseOrder`);
   }
 }

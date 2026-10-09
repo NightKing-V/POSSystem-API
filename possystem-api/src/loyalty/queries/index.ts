@@ -6,7 +6,4 @@ export * from './get-loyalty.handler';
 import { GetLoyaltiesHandler } from './get-loyalties.handler';
 import { GetLoyaltyHandler } from './get-loyalty.handler';
 
-export const LoyaltyQueryHandlers = [
-  GetLoyaltiesHandler,
-  GetLoyaltyHandler,
-];
+export const LoyaltyQueryHandlers = [GetLoyaltiesHandler, GetLoyaltyHandler];
